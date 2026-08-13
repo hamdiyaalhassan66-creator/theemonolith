@@ -2847,21 +2847,29 @@ function BottomSheet({
     const modalBg = theme === "light" ? DARK : WHITE
     const textColor = theme === "light" ? WHITE : DARK
 
-    // measure natural content height so we only scroll when it's actually needed
-    const contentRef = useRef<HTMLDivElement>(null)
-    const [contentHeight, setContentHeight] = useState(0)
+    // Measure the panel's natural (unconstrained) height via an inner
+    // wrapper that itself never has an explicit height set. We then apply
+    // an explicit px height to the outer (transformed/fixed) panel —
+    // Safari has a bug where `height: auto` on an element with a CSS
+    // transform (which Framer Motion's drag/animate uses) doesn't shrink
+    // to content reliably, so we avoid "auto" entirely.
+    const innerRef = useRef<HTMLDivElement>(null)
+    const [naturalHeight, setNaturalHeight] = useState(0)
     useEffect(() => {
         if (!visible) return
-        const el = contentRef.current
+        const el = innerRef.current
         if (!el) return
-        const update = () => setContentHeight(el.scrollHeight)
+        const update = () => setNaturalHeight(el.scrollHeight)
         update()
         const ro = new ResizeObserver(update)
         ro.observe(el)
         return () => ro.disconnect()
     }, [visible, children])
 
-    const needsScroll = contentHeight > maxHeight
+    const needsScroll = naturalHeight > maxHeight
+    const panelHeight = naturalHeight > 0
+        ? Math.min(naturalHeight, maxHeight)
+        : maxHeight // fallback for first paint before measurement resolves
 
     const handleClose = () => {
         playClickSound()
@@ -2918,90 +2926,95 @@ function BottomSheet({
                             bottom: 0,
                             zIndex: 10002,
                             width: "100%",
-                            height: needsScroll ? maxHeight : "auto",
+                            height: panelHeight,
                             maxHeight,
                             display: "flex",
                             flexDirection: "column",
                             background: modalBg,
                             overflow: "hidden",
                             touchAction: "none",
+                            transition: "height 0.15s ease",
                         }}
                     >
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "center",
-                                padding: "10px 0 4px",
-                                cursor: "grab",
-                            }}
-                            onPointerDown={(e) => dragControls.start(e)}
-                        >
+                        <div ref={innerRef} style={{ display: "flex", flexDirection: "column" }}>
                             <div
                                 style={{
-                                    width: 36,
-                                    height: 4,
-                                    borderRadius: 2,
-                                    background:
-                                        theme === "light"
-                                            ? "rgba(254,254,254,0.3)"
-                                            : "rgba(28,28,28,0.3)",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    padding: "10px 0 4px",
+                                    cursor: "grab",
                                 }}
-                            />
-                        </div>
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "4px 16px 12px",
-                                flexShrink: 0,
-                            }}
-                        >
+                                onPointerDown={(e) => dragControls.start(e)}
+                            >
+                                <div
+                                    style={{
+                                        width: 36,
+                                        height: 4,
+                                        borderRadius: 2,
+                                        background:
+                                            theme === "light"
+                                                ? "rgba(254,254,254,0.3)"
+                                                : "rgba(28,28,28,0.3)",
+                                    }}
+                                />
+                            </div>
                             <div
                                 style={{
                                     display: "flex",
                                     alignItems: "center",
-                                    gap: 8,
+                                    justifyContent: "space-between",
+                                    padding: "4px 16px 12px",
+                                    flexShrink: 0,
                                 }}
                             >
-                                {titleIcon}
-                                <span
+                                <div
                                     style={{
-                                        fontFamily: FONT,
-                                        fontWeight: 600,
-                                        fontSize: 15,
-                                        color: textColor,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
                                     }}
                                 >
-                                    {title}
-                                </span>
+                                    {titleIcon}
+                                    <span
+                                        style={{
+                                            fontFamily: FONT,
+                                            fontWeight: 600,
+                                            fontSize: 15,
+                                            color: textColor,
+                                        }}
+                                    >
+                                        {title}
+                                    </span>
+                                </div>
+                                <div
+                                    onClick={handleClose}
+                                    style={{
+                                        width: 32,
+                                        height: 32,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        background: PINK,
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    <Icon.Close color={DARK} />
+                                </div>
                             </div>
                             <div
-                                onClick={handleClose}
                                 style={{
-                                    width: 32,
-                                    height: 32,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    background: PINK,
-                                    cursor: "pointer",
+                                    overflowY: needsScroll ? "auto" : "visible",
+                                    overflowX: "hidden",
+                                    touchAction: "pan-y",
+                                    padding: "0 16px",
+                                    WebkitOverflowScrolling: "touch",
+                                    maxHeight: needsScroll
+                                        ? maxHeight - 60 // roughly subtract drag handle + header row
+                                        : undefined,
                                 }}
                             >
-                                <Icon.Close color={DARK} />
+                                {children}
                             </div>
-                        </div>
-                        <div
-                            ref={contentRef}
-                            style={{
-                                overflowY: needsScroll ? "auto" : "visible",
-                                overflowX: "hidden",
-                                touchAction: "pan-y",
-                                padding: "0 16px",
-                                WebkitOverflowScrolling: "touch",
-                            }}
-                        >
-                            {children}
                         </div>
                     </motion.div>
                 </>
