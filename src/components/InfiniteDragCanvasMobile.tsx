@@ -1938,8 +1938,8 @@ paddingRight: 10,
                 >
                     <div
                         style={{
-                            width: 44,
-                            height: 44,
+                            width: 64,
+                            height: 64,
                             flexShrink: 0,
                             backgroundImage: entry.coverImageUrl
                                 ? `url(${entry.coverImageUrl})`
@@ -3432,30 +3432,33 @@ function NewEntrySheet({
                         <div
                             onClick={() => setGenreOpen((p) => !p)}
                             style={{
-                                display: "flex",
-                                flexDirection: "row",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "14px 0",
-                                gap: 8,
-                                height: 46,
-                                background: st.rowBg,
-                                borderBottom: `1px solid ${st.rowBorder}`,
-                                cursor: "pointer",
-                                boxSizing: "border-box",
-                            }}
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "14px 0",
+    gap: 8,
+    height: 46,
+    overflow: "hidden",
+    background: st.rowBg,
+    borderBottom: `1px solid ${st.rowBorder}`,
+    cursor: "pointer",
+    boxSizing: "border-box",
+}}
                         >
                             <div
-                                style={{
-                                    display: "flex",
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    gap: 8,
-                                    flexWrap: "nowrap",
-                                    overflowX: "auto",
-                                    flex: 1,
-                                }}
-                            >
+    style={{
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "nowrap",
+        overflowX: "auto",
+        overflowY: "hidden",
+        flex: 1,
+        height: "100%",
+    }}
+>
                                 {genres.length === 0 ? (
                                     <span
                                         style={{
@@ -4046,30 +4049,33 @@ function FilterSheet({
                         <div
                             onClick={() => setGenreOpen((p) => !p)}
                             style={{
-                                display: "flex",
-                                flexDirection: "row",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "14px 0",
-                                gap: 8,
-                                height: 46,
-                                background: st.rowBg,
-                                borderBottom: `1px solid ${st.rowBorder}`,
-                                cursor: "pointer",
-                                boxSizing: "border-box",
-                            }}
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "14px 0",
+    gap: 8,
+    height: 46,
+    overflow: "hidden",
+    background: st.rowBg,
+    borderBottom: `1px solid ${st.rowBorder}`,
+    cursor: "pointer",
+    boxSizing: "border-box",
+}}
                         >
                             <div
-                                style={{
-                                    display: "flex",
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    gap: 8,
-                                    flexWrap: "nowrap",
-                                    overflowX: "auto",
-                                    flex: 1,
-                                }}
-                            >
+    style={{
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "nowrap",
+        overflowX: "auto",
+        overflowY: "hidden",
+        flex: 1,
+        height: "100%",
+    }}
+>
                                 {genres.length === 0 ? (
                                     <span
                                         style={{
@@ -5541,6 +5547,14 @@ export default function InfiniteDragCanvasMobile(props: MobileProps) {
     useEffect(() => {
         setViewingEntry(null)
     }, [activeCategory])
+
+    useEffect(() => {
+    if (typeof window === "undefined") return
+    const script = document.createElement("script")
+    script.src = "https://cdn.jsdelivr.net/npm/eruda"
+    script.onload = () => (window as any).eruda?.init()
+    document.body.appendChild(script)
+}, [])
 
     useEffect(() => {
         setViewingEntry(null)
