@@ -2933,14 +2933,12 @@ function useViewportHeight() {
     )
     useEffect(() => {
         const update = () => {
-            setVh(window.visualViewport?.height ?? window.innerHeight)
+            setVh(window.innerHeight)
         }
         update()
-        window.visualViewport?.addEventListener("resize", update)
         window.addEventListener("resize", update)
         window.addEventListener("orientationchange", update)
         return () => {
-            window.visualViewport?.removeEventListener("resize", update)
             window.removeEventListener("resize", update)
             window.removeEventListener("orientationchange", update)
         }
