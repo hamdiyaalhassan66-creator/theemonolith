@@ -2904,7 +2904,7 @@ function useFieldStyles(theme: "light" | "dark") {
     const input: React.CSSProperties = {
         fontFamily: FONT,
         fontWeight: 500,
-        fontSize: 14,
+        fontSize: 16,
         lineHeight: "20px",
         color: textColor,
         background: "transparent",
