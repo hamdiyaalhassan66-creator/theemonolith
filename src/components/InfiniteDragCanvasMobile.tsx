@@ -1900,6 +1900,8 @@ function EntryAddedToast({
 }) {
     const cardBg = theme === "light" ? DARK : WHITE
     const cardTextColor = theme === "light" ? WHITE : DARK
+    const mutedCardTextColor =
+    cardBg === WHITE ? "rgba(28,28,28,0.55)" : "rgba(254,254,254,0.55)"
     useEffect(() => {
         if (!entry) return
         const t = window.setTimeout(onClose, 4000)
@@ -1927,7 +1929,10 @@ function EntryAddedToast({
                         alignItems: "center",
                         gap: 10,
                         background: cardBg,
-                        padding: 10,
+                        paddingTop: 0,
+paddingLeft: 0,
+paddingBottom: 0,
+paddingRight: 10,
                         boxSizing: "border-box",
                     }}
                 >
@@ -1958,8 +1963,8 @@ function EntryAddedToast({
                             style={{
                                 fontFamily: FONT,
                                 fontWeight: 600,
-                                fontSize: 11,
-                                color: PINK,
+                                fontSize: 12,
+                                color: mutedCardTextColor,
                             }}
                         >
                             {label}
