@@ -1592,6 +1592,112 @@ function getDominantColorForSpine(url: string): Promise<string> {
         img.src = url
     })
 }
+
+function rgbToSaturation(r: number, g: number, b: number): number {
+    const max = Math.max(r, g, b) / 255
+    const min = Math.min(r, g, b) / 255
+    const l = (max + min) / 2
+    if (max === min) return 0
+    const d = max - min
+    return l > 0.5 ? d / (2 - max - min) : d / (max + min)
+}
+
+const coverLightDarkCache = new Map<string, { light: string; dark: string }>()
+
+function getCoverLightDarkColors(url: string): Promise<{ light: string; dark: string }> {
+    if (coverLightDarkCache.has(url))
+        return Promise.resolve(coverLightDarkCache.get(url)!)
+    return new Promise((resolve) => {
+        const img = new Image()
+        img.crossOrigin = "anonymous"
+        img.onload = () => {
+            try {
+                const size = 150
+                const canvas = document.createElement("canvas")
+                canvas.width = size
+                canvas.height = size
+                const ctx = canvas.getContext("2d")!
+                ctx.imageSmoothingEnabled = false
+                ctx.drawImage(img, 0, 0, size, size)
+                const { data } = ctx.getImageData(0, 0, size, size)
+
+                const pixels: { r: number; g: number; b: number; lum: number; sat: number }[] = []
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i], g = data[i + 1], b = data[i + 2]
+                    pixels.push({
+                        r, g, b,
+                        lum: relativeLuminance(r, g, b),
+                        sat: rgbToSaturation(r, g, b),
+                    })
+                }
+
+                const sortedByLum = [...pixels].sort((a, b) => a.lum - b.lum)
+                const medianLum = sortedByLum[Math.floor(sortedByLum.length / 2)]?.lum ?? 0.5
+
+                const lightGroup = pixels.filter((p) => p.lum >= medianLum)
+                const darkGroup = pixels.filter((p) => p.lum < medianLum)
+
+                const avgOf = (arr: typeof pixels) => {
+                    const s = arr.reduce(
+                        (acc, p) => ({ r: acc.r + p.r, g: acc.g + p.g, b: acc.b + p.b }),
+                        { r: 0, g: 0, b: 0 }
+                    )
+                    const n = arr.length || 1
+                    return `rgb(${Math.round(s.r / n)}, ${Math.round(s.g / n)}, ${Math.round(s.b / n)})`
+                }
+
+                const pickTone = (
+                    group: typeof pixels,
+                    extremeDirection: "darkest" | "lightest",
+                    fallback: string
+                ) => {
+                    if (!group.length) return fallback
+                    const bySat = [...group].sort((a, b) => b.sat - a.sat)
+                    const topSatCount = Math.max(1, Math.round(group.length * 0.02))
+                    const topSat = bySat.slice(0, topSatCount)
+                    const bestSat = topSat[0]?.sat ?? 0
+
+                    if (bestSat >= 0.2) {
+                        return avgOf(topSat)
+                    }
+
+                    const byLum =
+                        extremeDirection === "darkest"
+                            ? [...group].sort((a, b) => a.lum - b.lum)
+                            : [...group].sort((a, b) => b.lum - a.lum)
+                    const extremeCount = Math.max(1, Math.round(group.length * 0.05))
+                    return avgOf(byLum.slice(0, extremeCount))
+                }
+
+                const result = {
+                    dark: pickTone(darkGroup, "darkest", "#1a1a1a"),
+                    light: pickTone(lightGroup, "lightest", "#f5f5f5"),
+                }
+                coverLightDarkCache.set(url, result)
+                resolve(result)
+            } catch (e) {
+                resolve({ light: "#f5f5f5", dark: "#1a1a1a" })
+            }
+        }
+        img.onerror = () => resolve({ light: "#f5f5f5", dark: "#1a1a1a" })
+        img.src = url
+    })
+}
+
+function pickCoverTextColor(light: string, dark: string, bgRgbString: string): string {
+    const parse = (s: string): [number, number, number] => {
+        const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/)
+        return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [128, 128, 128]
+    }
+    const [br, bg2, bb] = parse(bgRgbString)
+    const bgLum = relativeLuminance(br, bg2, bb)
+    const [lr, lg, lb] = parse(light)
+    const [dr, dg, db] = parse(dark)
+    const lightContrast = contrastRatio(bgLum, relativeLuminance(lr, lg, lb))
+    const darkContrast = contrastRatio(bgLum, relativeLuminance(dr, dg, db))
+    return lightContrast >= darkContrast ? light : dark
+}
+
 const filmSpineColorCache = new Map<string, string>()
 function getDominantColorForFilmSpine(
     url: string,
@@ -2034,6 +2140,20 @@ function Carousel3D({
             cancelled = true
         }
     }, [images, isFilm, effSpineDepth, effItemWidth])
+
+    const [bookCoverTones, setBookCoverTones] = useState<Record<string, { light: string; dark: string }>>({})
+
+useEffect(() => {
+    if (!isBook) return
+    let cancelled = false
+    images.forEach((img) => {
+        if (!img.src || bookCoverTones[img.src]) return
+        getCoverLightDarkColors(img.src).then((tones) => {
+            if (!cancelled) setBookCoverTones((prev) => ({ ...prev, [img.src]: tones }))
+        })
+    })
+    return () => { cancelled = true }
+}, [images, isBook])
 
     const [musicSpineEdgeColors, setMusicSpineEdgeColors] = useState<
         Record<string, string>
@@ -2512,11 +2632,16 @@ function Carousel3D({
                                                       `${img.src}::${fraction.toFixed(3)}`
                                                   ]
                                                 : undefined
-                                        const effectiveTextColor = spineBg
-                                            ? getContrastingSpineTextColor(
-                                                  spineBg
-                                              )
-                                            : "rgba(254,254,254,0.95)"
+                                        const effectiveTextColor =
+    isBook && img?.src && spineBg && bookCoverTones[img.src]
+        ? pickCoverTextColor(
+              bookCoverTones[img.src].light,
+              bookCoverTones[img.src].dark,
+              spineBg
+          )
+        : spineBg
+          ? getContrastingSpineTextColor(spineBg)
+          : "rgba(254,254,254,0.95)"
                                         return (
                                             <div
                                                 style={{
