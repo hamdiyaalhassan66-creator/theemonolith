@@ -2846,6 +2846,23 @@ function BottomSheet({
     const maxHeight = Math.round(viewportHeight * maxHeightRatio)
     const modalBg = theme === "light" ? DARK : WHITE
     const textColor = theme === "light" ? WHITE : DARK
+
+    // measure natural content height so we only scroll when it's actually needed
+    const contentRef = useRef<HTMLDivElement>(null)
+    const [contentHeight, setContentHeight] = useState(0)
+    useEffect(() => {
+        if (!visible) return
+        const el = contentRef.current
+        if (!el) return
+        const update = () => setContentHeight(el.scrollHeight)
+        update()
+        const ro = new ResizeObserver(update)
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, [visible, children])
+
+    const needsScroll = contentHeight > maxHeight
+
     const handleClose = () => {
         playClickSound()
         onClose()
@@ -2901,6 +2918,7 @@ function BottomSheet({
                             bottom: 0,
                             zIndex: 10002,
                             width: "100%",
+                            height: needsScroll ? maxHeight : "auto",
                             maxHeight,
                             display: "flex",
                             flexDirection: "column",
@@ -2974,8 +2992,9 @@ function BottomSheet({
                             </div>
                         </div>
                         <div
+                            ref={contentRef}
                             style={{
-                                overflowY: "auto",
+                                overflowY: needsScroll ? "auto" : "visible",
                                 overflowX: "hidden",
                                 touchAction: "pan-y",
                                 padding: "0 16px",
