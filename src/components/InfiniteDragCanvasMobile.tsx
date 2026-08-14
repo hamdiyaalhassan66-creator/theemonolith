@@ -3672,7 +3672,8 @@ function NewEntrySheet({
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            minHeight: 50,
+                            height: 50,
+                            overflow: "hidden",
                             background: st.rowBg,
                             border: `1px dashed ${st.rowBorder}`,
                             cursor: "pointer",
@@ -3694,8 +3695,8 @@ function NewEntrySheet({
                                     src={coverPreview}
                                     alt=""
                                     style={{
-                                        width: 42,
-                                        height: 42,
+                                        width: 34,
+                                        height: 34,
                                         objectFit: "cover",
                                         flexShrink: 0,
                                     }}
