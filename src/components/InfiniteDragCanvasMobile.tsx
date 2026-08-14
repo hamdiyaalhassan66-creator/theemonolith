@@ -3677,7 +3677,7 @@ function NewEntrySheet({
                             background: st.rowBg,
                             border: `1px dashed ${st.rowBorder}`,
                             cursor: "pointer",
-                            padding: "14px 16px 14px 0",
+                            padding: "14px 0",
                             gap: 8,
                             boxSizing: "border-box",
                         }}
