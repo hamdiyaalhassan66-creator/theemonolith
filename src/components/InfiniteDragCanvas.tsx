@@ -128,6 +128,77 @@ async function addEntry(entryData: Record<string, any>): Promise<Entry> {
     return firestoreDocToEntry(doc)
 }
 
+async function deleteEntry(entryId: string): Promise<void> {
+    const res = await fetch(
+        `${FIRESTORE_BASE}/entries/${entryId}?key=${firebaseConfig.apiKey}`,
+        { method: "DELETE" }
+    )
+    if (!res.ok) {
+        throw new Error(
+            `Firestore delete failed: ${res.status} ${await res.text()}`
+        )
+    }
+}
+
+async function updateEntry(
+    entryId: string,
+    entryData: Record<string, any>
+): Promise<Entry> {
+    const maskParams = Object.keys(entryData)
+        .map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`)
+        .join("&")
+    const res = await fetch(
+        `${FIRESTORE_BASE}/entries/${entryId}?key=${firebaseConfig.apiKey}&${maskParams}`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                fields: jsObjectToFirestoreFields(entryData),
+            }),
+        }
+    )
+    if (!res.ok) {
+        throw new Error(
+            `Firestore update failed: ${res.status} ${await res.text()}`
+        )
+    }
+    const doc = await res.json()
+    return firestoreDocToEntry(doc)
+}
+
+// ─── Local ownership tracking ───────────────────────────────────────────────
+const MY_ENTRIES_KEY = "directory-my-entries"
+
+function getMyEntryIds(): string[] {
+    if (typeof window === "undefined") return []
+    try {
+        const raw = localStorage.getItem(MY_ENTRIES_KEY)
+        return raw ? JSON.parse(raw) : []
+    } catch (e) {
+        return []
+    }
+}
+
+function addMyEntryId(id: string) {
+    if (typeof window === "undefined") return
+    try {
+        const ids = getMyEntryIds()
+        if (!ids.includes(id)) {
+            localStorage.setItem(MY_ENTRIES_KEY, JSON.stringify([...ids, id]))
+        }
+    } catch (e) {}
+}
+
+function removeMyEntryId(id: string) {
+    if (typeof window === "undefined") return
+    try {
+        localStorage.setItem(
+            MY_ENTRIES_KEY,
+            JSON.stringify(getMyEntryIds().filter((x) => x !== id))
+        )
+    } catch (e) {}
+}
+
 const UPLOAD_WORKER_URL =
     "https://thee-monolith-upload.hamdiyaalhassan66.workers.dev"
 const R2_COVERS_BUCKET = "thee-monolith-covers"
@@ -146,6 +217,12 @@ const CATEGORY_MAP: Record<string, "screen" | "sound" | "print"> = {
     Music: "sound",
     Film: "screen",
     Books: "print",
+}
+
+const REVERSE_CATEGORY_MAP: Record<string, string> = {
+    sound: "Music",
+    screen: "Film",
+    print: "Books",
 }
 
 const DEFAULT_FILTERS = { type: "", genres: [] as string[], year: "" }
@@ -3429,6 +3506,7 @@ function IntroBanner({
 
 // ─── EntryAddedToast ────────────────────────────────────────────────────────
 interface ToastEntryData {
+    entryId: string
     title: string
     creatorName: string
     coverImageUrl: string | null
@@ -3440,11 +3518,13 @@ interface ToastEntryData {
 function EntryAddedToast({
     entry,
     onClose,
+    onUndo,
     theme,
     label = "New Entry Added",
 }: {
     entry: ToastEntryData | null
     onClose: () => void
+    onUndo?: () => void
     theme: "light" | "dark"
     label?: string
 }) {
@@ -3514,52 +3594,84 @@ function EntryAddedToast({
                 >
                     {/* Title pill */}
                     <div
-                        onClick={() => {
-                            playClickSound()
-                            onClose()
-                        }}
-                        style={{
-                            display: "flex",
-                            flexDirection: "row",
-                            justifyContent: "flex-end",
-                            alignItems: "center",
-                            gap: 8,
-                            width: "fit-content",
-                            background: pink,
-                            cursor: "pointer",
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "flex-end",
-                                alignItems: "flex-end",
-                                padding: "8px 0px",
-                            }}
-                        >
-                            <span style={chipTextStyle}>{label}</span>
-                        </div>
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                padding: 3,
-                                width: 22,
-                                height: 22,
-                                boxSizing: "border-box",
-                                cursor: "pointer",
-                            }}
-                        >
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path
-                                    d="M13.0306 11.9695C13.1715 12.1104 13.2506 12.3015 13.2506 12.5007C13.2506 12.7 13.1715 12.8911 13.0306 13.032C12.8897 13.1729 12.6986 13.252 12.4993 13.252C12.3001 13.252 12.109 13.1729 11.9681 13.032L7.99997 9.06261L4.0306 13.0307C3.8897 13.1716 3.69861 13.2508 3.49935 13.2508C3.30009 13.2508 3.10899 13.1716 2.9681 13.0307C2.8272 12.8898 2.74805 12.6987 2.74805 12.4995C2.74805 12.3002 2.8272 12.1091 2.9681 11.9682L6.93747 8.00011L2.96935 4.03073C2.82845 3.88984 2.7493 3.69874 2.7493 3.49948C2.7493 3.30023 2.82845 3.10913 2.96935 2.96823C3.11024 2.82734 3.30134 2.74818 3.5006 2.74818C3.69986 2.74818 3.89095 2.82734 4.03185 2.96823L7.99997 6.93761L11.9693 2.96761C12.1102 2.82671 12.3013 2.74756 12.5006 2.74756C12.6999 2.74756 12.891 2.82671 13.0318 2.96761C13.1727 3.10851 13.2519 3.2996 13.2519 3.49886C13.2519 3.69812 13.1727 3.88921 13.0318 4.03011L9.06247 8.00011L13.0306 11.9695Z"
-                                    fill={dark}
-                                />
-                            </svg>
-                        </div>
-                    </div>
+    style={{
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        alignItems: "center",
+        gap: 8,
+        width: "fit-content",
+        background: pink,
+    }}
+>
+    <div
+        style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "flex-end",
+            alignItems: "flex-end",
+            padding: "8px 0px",
+        }}
+    >
+        <span style={chipTextStyle}>{label}</span>
+    </div>
+
+    <div
+        style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+        }}
+    >
+        {onUndo && (
+            <div
+                onClick={() => {
+                    playClickSound()
+                    onUndo()
+                }}
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "4px 6px",
+                    cursor: "pointer",
+                }}
+            >
+                <span
+                    style={{
+                        ...chipTextStyle,
+                        textDecoration: "underline",
+                    }}
+                >
+                    Undo
+                </span>
+            </div>
+        )}
+        <div
+            onClick={() => {
+                playClickSound()
+                onClose()
+            }}
+            style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 3,
+                width: 22,
+                height: 22,
+                boxSizing: "border-box",
+                cursor: "pointer",
+            }}
+        >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                    d="M13.0306 11.9695C13.1715 12.1104 13.2506 12.3015 13.2506 12.5007C13.2506 12.7 13.1715 12.8911 13.0306 13.032C12.8897 13.1729 12.6986 13.252 12.4993 13.252C12.3001 13.252 12.109 13.1729 11.9681 13.032L7.99997 9.06261L4.0306 13.0307C3.8897 13.1716 3.69861 13.2508 3.49935 13.2508C3.30009 13.2508 3.10899 13.1716 2.9681 13.0307C2.8272 12.8898 2.74805 12.6987 2.74805 12.4995C2.74805 12.3002 2.8272 12.1091 2.9681 11.9682L6.93747 8.00011L2.96935 4.03073C2.82845 3.88984 2.7493 3.69874 2.7493 3.49948C2.7493 3.30023 2.82845 3.10913 2.96935 2.96823C3.11024 2.82734 3.30134 2.74818 3.5006 2.74818C3.69986 2.74818 3.89095 2.82734 4.03185 2.96823L7.99997 6.93761L11.9693 2.96761C12.1102 2.82671 12.3013 2.74756 12.5006 2.74756C12.6999 2.74756 12.891 2.82671 13.0318 2.96761C13.1727 3.10851 13.2519 3.2996 13.2519 3.49886C13.2519 3.69812 13.1727 3.88921 13.0318 4.03011L9.06247 8.00011L13.0306 11.9695Z"
+                    fill={dark}
+                />
+            </svg>
+        </div>
+    </div>
+</div>
 
                     {/* Entry card */}
                     <div
@@ -4809,6 +4921,7 @@ function NewEntryModal({
     theme,
     defaultCategory,
     entries,
+    editingEntry,
     onSubmitted,
     onDuplicate,
 }: {
@@ -4817,6 +4930,7 @@ function NewEntryModal({
     theme: "light" | "dark"
     defaultCategory: string
     entries: Entry[]
+    editingEntry?: Entry | null
     onSubmitted?: (entry: Entry) => void
     onDuplicate?: (existing: Entry) => void
 }) {
@@ -4868,6 +4982,7 @@ function NewEntryModal({
         type.trim().length > 0 &&
         genres.length > 0 &&
         releaseYear.trim().length > 0
+    const isEditing = !!editingEntry 
     const errorBorderColor = "#FF5C5C"
     const [showValidation, setShowValidation] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -4880,12 +4995,38 @@ function NewEntryModal({
     const touchLastYRef = useRef<number | null>(null)
 
     useEffect(() => {
-        if (visible) {
-            setCategory(defaultCategory)
+    if (visible) {
+        if (editingEntry) {
+            setCategory(
+                REVERSE_CATEGORY_MAP[editingEntry.category] || defaultCategory
+            )
+            setType(toTitleCaseLabel(editingEntry.subcategory))
+            setGenres(
+                editingEntry.genre ? editingEntry.genre.split(",") : []
+            )
+            setTitle(editingEntry.title)
+            setArtist(editingEntry.creator_name)
+            setReleaseYear(
+                editingEntry.release_year
+                    ? String(editingEntry.release_year)
+                    : ""
+            )
+            setComment(editingEntry.comment || "")
+            setUsername(
+                editingEntry.poster_username === "Anonymous"
+                    ? ""
+                    : editingEntry.poster_username
+            )
+            setCoverPreview(editingEntry.cover_image_url)
+            setUrl(editingEntry.external_link || "")
+            setPreviewUrl(editingEntry.preview_url || "")
         } else {
-            resetForm()
+            setCategory(defaultCategory)
         }
-    }, [visible, defaultCategory])
+    } else {
+        resetForm()
+    }
+}, [visible, defaultCategory, editingEntry])
 
     const toggleGenre = (g: string) => {
         setGenres((prev) => {
@@ -4957,12 +5098,13 @@ function NewEntryModal({
     }
 
     const handleSubmit = async () => {
-        if (submitting) return
-        if (!isFormValid) {
-            setShowValidation(true)
-            return
-        }
+    if (submitting) return
+    if (!isFormValid) {
+        setShowValidation(true)
+        return
+    }
 
+    if (!editingEntry) {
         const duplicate = isDuplicateEntry(
             entries,
             CATEGORY_MAP[category],
@@ -4973,70 +5115,78 @@ function NewEntryModal({
             onDuplicate?.(duplicate)
             return
         }
-
-        setSubmitting(true)
-        try {
-            let coverUrl: string | null = null
-            if (coverFile) {
-                try {
-                    const presignRes = await fetch(UPLOAD_WORKER_URL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            filename: coverFile.name,
-                            contentType: coverFile.type,
-                        }),
-                    })
-                    if (!presignRes.ok) {
-                        throw new Error(`Presign failed: ${presignRes.status}`)
-                    }
-                    const { uploadUrl, publicUrl } = await presignRes.json()
-
-                    const putRes = await fetch(uploadUrl, {
-                        method: "PUT",
-                        headers: { "Content-Type": coverFile.type },
-                        body: coverFile,
-                    })
-                    if (!putRes.ok) {
-                        throw new Error(`Upload failed: ${putRes.status}`)
-                    }
-                    coverUrl = publicUrl
-                } catch (uploadError) {
-                    console.error("Cover upload failed:", uploadError)
-                }
-            }
-
-            const entryData = {
-                category: CATEGORY_MAP[category],
-                subcategory: type.toLowerCase().replace(/\s+/g, "_"),
-                genre: genres.length > 0 ? genres.join(",") : null,
-                title: title.trim(),
-                creator_name: artist.trim(),
-                cover_image_url: coverUrl,
-                external_link: url.trim() || null,
-                preview_url:
-                    type === "Curated Playlist"
-                        ? previewUrl.trim() || null
-                        : null,
-                comment: comment.trim() || null,
-                poster_username: username.trim() || "Anonymous",
-                release_year: releaseYear.trim()
-                    ? parseInt(releaseYear.trim(), 10)
-                    : null,
-            }
-
-            try {
-                const savedEntry = await addEntry(entryData)
-                onSubmitted?.(savedEntry)
-                resetForm()
-                onClose()
-            } catch (insertError) {
-                console.error("Entry insert failed:", insertError)
-            }
-        } finally {
-            setSubmitting(false)
-        }
     }
+
+    setSubmitting(true)
+    try {
+        let coverUrl: string | null = editingEntry?.cover_image_url ?? null
+        if (coverFile) {
+            try {
+                const presignRes = await fetch(UPLOAD_WORKER_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        filename: coverFile.name,
+                        contentType: coverFile.type,
+                    }),
+                })
+                if (!presignRes.ok) {
+                    throw new Error(`Presign failed: ${presignRes.status}`)
+                }
+                const { uploadUrl, publicUrl } = await presignRes.json()
+
+                const putRes = await fetch(uploadUrl, {
+                    method: "PUT",
+                    headers: { "Content-Type": coverFile.type },
+                    body: coverFile,
+                })
+                if (!putRes.ok) {
+                    throw new Error(`Upload failed: ${putRes.status}`)
+                }
+                coverUrl = publicUrl
+            } catch (uploadError) {
+                console.error("Cover upload failed:", uploadError)
+            }
+        } else if (editingEntry && coverPreview === null) {
+            coverUrl = null
+        }
+
+        const entryData = {
+            category: CATEGORY_MAP[category],
+            subcategory: type.toLowerCase().replace(/\s+/g, "_"),
+            genre: genres.length > 0 ? genres.join(",") : null,
+            title: title.trim(),
+            creator_name: artist.trim(),
+            cover_image_url: coverUrl,
+            external_link: url.trim() || null,
+            preview_url:
+                type === "Curated Playlist"
+                    ? previewUrl.trim() || null
+                    : null,
+            comment: comment.trim() || null,
+            poster_username: username.trim() || "Anonymous",
+            release_year: releaseYear.trim()
+                ? parseInt(releaseYear.trim(), 10)
+                : null,
+        }
+
+        try {
+            const savedEntry = editingEntry
+                ? await updateEntry(editingEntry.id, entryData)
+                : await addEntry(entryData)
+            onSubmitted?.(savedEntry)
+            resetForm()
+            onClose()
+        } catch (insertError) {
+            console.error(
+                editingEntry ? "Entry update failed:" : "Entry insert failed:",
+                insertError
+            )
+        }
+    } finally {
+        setSubmitting(false)
+    }
+}
 
     const measureTravelBounds = useCallback(() => {
         if (typeof window === "undefined") return
@@ -5283,15 +5433,9 @@ function NewEntryModal({
                                         padding: "8px 0px",
                                     }}
                                 >
-                                    <span
-                                        style={{
-                                            ...labelStyle,
-                                            fontSize: 14,
-                                            color: dark,
-                                        }}
-                                    >
-                                        New Entry
-                                    </span>
+                                    <span style={{ ...labelStyle, fontSize: 14, color: dark }}>
+    {isEditing ? "Edit Entry" : "New Entry"}
+</span>
                                 </div>
                                 <div
                                     style={{
@@ -6139,17 +6283,15 @@ function NewEntryModal({
                                                     color={dark}
                                                 />
                                             )}
-                                            <span
-                                                style={{
-                                                    ...labelStyle,
-                                                    color: dark,
-                                                    textAlign: "left",
-                                                }}
-                                            >
-                                                {submitting
-                                                    ? "Submitting..."
-                                                    : "Submit"}
-                                            </span>
+                                            <span style={{ ...labelStyle, color: dark, textAlign: "left" }}>
+    {submitting
+        ? isEditing
+            ? "Saving..."
+            : "Submitting..."
+        : isEditing
+          ? "Save changes"
+          : "Submit"}
+</span>
                                         </div>
                                     </div>
                                 </div>
@@ -7316,6 +7458,8 @@ function EntryDetailModal({
     textureImg,
     textureOpacity,
     onCursorHoverChange,
+    onEdit,
+    onDelete,
 }: {
     visible: boolean
     onClose: () => void
@@ -7330,6 +7474,8 @@ function EntryDetailModal({
     textureImg?: string
     textureOpacity: number
     onCursorHoverChange?: (hovering: boolean) => void
+    onEdit?: (entry: Entry) => void
+    onDelete?: (entry: Entry) => void
 }) {
     const font = "'Spline Sans Mono', monospace"
     const pink = "#E298F2"
@@ -7468,6 +7614,7 @@ const mutedThemedTextColor =
     const img = entryToImageItem(entry)
     const typeLabel = toTitleCaseLabel(entry.subcategory ?? "")
     const genres = (entry.genre ?? "").split(",").filter(Boolean)
+    const isMine = getMyEntryIds().includes(entry.id)
 
     return (
         <AnimatePresence>
@@ -7848,6 +7995,54 @@ const mutedThemedTextColor =
 )}
                                         </div>
                                     )}
+
+                                    {isMine && (
+    <div
+        style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 16,
+        }}
+    >
+        <span
+            onClick={(e) => {
+                e.stopPropagation()
+                playClickSound()
+                onEdit?.(entry)
+            }}
+            onMouseEnter={() => onCursorHoverChange?.(false)}
+            onMouseLeave={() => onCursorHoverChange?.(true)}
+            style={{
+                ...chipTextStyle,
+                color: themedTextColor,
+                textDecoration: "underline",
+                cursor: "pointer",
+                pointerEvents: "auto",
+            }}
+        >
+            Edit
+        </span>
+        <span
+            onClick={(e) => {
+                e.stopPropagation()
+                playClickSound()
+                onDelete?.(entry)
+            }}
+            onMouseEnter={() => onCursorHoverChange?.(false)}
+            onMouseLeave={() => onCursorHoverChange?.(true)}
+            style={{
+                ...chipTextStyle,
+                color: themedTextColor,
+                textDecoration: "underline",
+                cursor: "pointer",
+                pointerEvents: "auto",
+            }}
+        >
+            Delete
+        </span>
+    </div>
+)}
 
                                     {img.externalLink && (
                                         <a
@@ -8588,6 +8783,7 @@ export default function InfiniteDragCanvas({
     const [viewCursorVisible, setViewCursorVisible] = useState(false)
     const viewCursorRef = useRef<HTMLDivElement>(null)
     const isOverActionButtonRef = useRef(false)
+    const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
 
     const cancelHoverClear = () => {
         if (hoverClearTimeoutRef.current) {
@@ -8973,6 +9169,42 @@ export default function InfiniteDragCanvas({
             setViewCursorVisible(true)
         }
     }, [])
+
+    const handleEditEntry = useCallback((entry: Entry) => {
+    setViewingEntry(null)
+    setClickedKey(null)
+    setViewCursorVisible(false)
+    setEditingEntry(entry)
+    setShowNewEntryModal(true)
+}, [])
+
+const handleDeleteEntry = useCallback(async (entry: Entry) => {
+    const confirmed = window.confirm(
+        `Delete "${entry.title}"? This can't be undone.`
+    )
+    if (!confirmed) return
+    setViewingEntry(null)
+    setClickedKey(null)
+    setViewCursorVisible(false)
+    setEntries((prev) => prev.filter((e) => e.id !== entry.id))
+    removeMyEntryId(entry.id)
+    try {
+        await deleteEntry(entry.id)
+    } catch (err) {
+        console.error("Delete failed:", err)
+    }
+}, [])
+
+    const handleUndoNewEntry = useCallback(async (entryId: string) => {
+    setToastEntry(null)
+    setEntries((prev) => prev.filter((e) => e.id !== entryId))
+    removeMyEntryId(entryId)
+    try {
+        await deleteEntry(entryId)
+    } catch (err) {
+        console.error("Undo delete failed:", err)
+    }
+}, [])
 
     const handleCellHoverStart = useCallback((id: string) => {
         cancelHoverClear()
@@ -9367,7 +9599,10 @@ export default function InfiniteDragCanvas({
                 onThemeChange={setTheme}
                 onSearch={setSearchValue}
                 onInfo={() => setShowInfoModal(true)}
-                onNewEntry={() => setShowNewEntryModal(true)}
+                onNewEntry={() => {
+    setEditingEntry(null)
+    setShowNewEntryModal(true)
+}}
             />
 
             {viewMode === "freeform" ? (
@@ -9681,50 +9916,69 @@ export default function InfiniteDragCanvas({
                 }
             />
             <NewEntryModal
-                visible={showNewEntryModal}
-                onClose={() => setShowNewEntryModal(false)}
-                theme={theme}
-                defaultCategory={activeCategory}
-                entries={entries}
-                onDuplicate={(existing) => {
-                    setDuplicateToastEntry({
-                        title: existing.title,
-                        creatorName: existing.creator_name,
-                        coverImageUrl: existing.cover_image_url,
-                        type: toTitleCaseLabel(existing.subcategory),
-                        genre: existing.genre
-                            ? existing.genre.split(",")[0]
-                            : undefined,
-                        releaseYear: existing.release_year,
-                    })
-                }}
-                onSubmitted={(entry) => {
-                    if (entry.category === CATEGORY_MAP[activeCategory]) {
-                        setEntries((prev) => [entry, ...prev])
-                    }
-                    setToastEntry({
-                        title: entry.title,
-                        creatorName: entry.creator_name,
-                        coverImageUrl: entry.cover_image_url,
-                        type: toTitleCaseLabel(entry.subcategory),
-                        genre: entry.genre
-                            ? entry.genre.split(",")[0]
-                            : undefined,
-                        releaseYear: entry.release_year,
-                    })
-                }}
-            />
+    visible={showNewEntryModal}
+    onClose={() => {
+        setShowNewEntryModal(false)
+        setEditingEntry(null)
+    }}
+    theme={theme}
+    defaultCategory={activeCategory}
+    entries={entries}
+    editingEntry={editingEntry}
+    onDuplicate={(existing) => {
+        setDuplicateToastEntry({
+            entryId: existing.id,
+            title: existing.title,
+            creatorName: existing.creator_name,
+            coverImageUrl: existing.cover_image_url,
+            type: toTitleCaseLabel(existing.subcategory),
+            genre: existing.genre
+                ? existing.genre.split(",")[0]
+                : undefined,
+            releaseYear: existing.release_year,
+        })
+    }}
+    onSubmitted={(entry) => {
+        if (editingEntry) {
+            setEntries((prev) =>
+                prev.map((e) => (e.id === entry.id ? entry : e))
+            )
+            setEditingEntry(null)
+            return
+        }
+        if (entry.category === CATEGORY_MAP[activeCategory]) {
+            setEntries((prev) => [entry, ...prev])
+        }
+        addMyEntryId(entry.id)
+        setToastEntry({
+            entryId: entry.id,
+            title: entry.title,
+            creatorName: entry.creator_name,
+            coverImageUrl: entry.cover_image_url,
+            type: toTitleCaseLabel(entry.subcategory),
+            genre: entry.genre
+                ? entry.genre.split(",")[0]
+                : undefined,
+            releaseYear: entry.release_year,
+        })
+    }}
+/>
             <EntryAddedToast
-                entry={toastEntry}
-                onClose={() => setToastEntry(null)}
-                theme={theme}
-            />
-            <EntryAddedToast
-                entry={duplicateToastEntry}
-                onClose={() => setDuplicateToastEntry(null)}
-                theme={theme}
-                label="Already In Directory"
-            />
+    entry={toastEntry}
+    onClose={() => setToastEntry(null)}
+    onUndo={
+        toastEntry
+            ? () => handleUndoNewEntry(toastEntry.entryId)
+            : undefined
+    }
+    theme={theme}
+/>
+<EntryAddedToast
+    entry={duplicateToastEntry}
+    onClose={() => setDuplicateToastEntry(null)}
+    theme={theme}
+    label="Already In Directory"
+/>
             <FilterModal
                 visible={showFilterModal}
                 onClose={() => setShowFilterModal(false)}
@@ -9747,24 +10001,26 @@ export default function InfiniteDragCanvas({
                 theme={theme}
             />
             <EntryDetailModal
-                visible={!!viewingEntry}
-                onClose={() => {
-                    setViewingEntry(null)
-                    setClickedKey(null)
-                    setViewCursorVisible(false)
-                }}
-                theme={theme}
-                entry={viewingEntry}
-                activeCategory={activeCategory}
-                contrast={contrast}
-                holeSize={holeSize}
-                bookWidth={bookWidth}
-                spineWidth={spineWidth}
-                bookBorderRadius={bookBorderRadius}
-                textureImg={textureImg}
-                textureOpacity={textureOpacity}
-                onCursorHoverChange={setViewCursorVisible}
-            />
+    visible={!!viewingEntry}
+    onClose={() => {
+        setViewingEntry(null)
+        setClickedKey(null)
+        setViewCursorVisible(false)
+    }}
+    theme={theme}
+    entry={viewingEntry}
+    activeCategory={activeCategory}
+    contrast={contrast}
+    holeSize={holeSize}
+    bookWidth={bookWidth}
+    spineWidth={spineWidth}
+    bookBorderRadius={bookBorderRadius}
+    textureImg={textureImg}
+    textureOpacity={textureOpacity}
+    onCursorHoverChange={setViewCursorVisible}
+    onEdit={handleEditEntry}
+    onDelete={handleDeleteEntry}
+/>
             <div
                 ref={viewCursorRef}
                 style={{
