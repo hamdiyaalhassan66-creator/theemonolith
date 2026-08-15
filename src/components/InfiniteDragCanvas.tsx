@@ -7546,6 +7546,8 @@ function DeleteConfirmModal({
     const textColor = theme === "light" ? white : dark
     const cancelBg = theme === "light" ? white : dark
     const cancelTextColor = theme === "light" ? dark : white
+    const mutedTextColor =
+    theme === "light" ? "rgba(28,28,28,0.55)" : "rgba(254,254,254,0.55)"
 
     const labelStyle: React.CSSProperties = {
         fontFamily: font,
@@ -7596,39 +7598,39 @@ function DeleteConfirmModal({
                         }}
                     />
                     <motion.div
-                        initial={{ y: "100%" }}
-                        animate={{ y: 0 }}
-                        exit={{ y: "100%" }}
-                        transition={{
-                            duration: 0.45,
-                            ease: [0.16, 1, 0.3, 1],
-                        }}
-                        style={{
-                            position: "fixed",
-                            left: "50%",
-                            bottom: 0,
-                            transform: "translateX(-50%)",
-                            width: "50vw",
-                            maxWidth: 708,
-                            zIndex: 10002,
-                        }}
-                    >
+    initial={{ y: "100%" }}
+    animate={{ y: 0 }}
+    exit={{ y: "100%" }}
+    transition={{
+        duration: 0.45,
+        ease: [0.16, 1, 0.3, 1],
+    }}
+    style={{
+        position: "fixed",
+        left: "50%",
+        bottom: 0,
+        transform: "translateX(-50%)",
+        width: 464,
+        maxWidth: "calc(100% - 16px)",
+        zIndex: 10002,
+    }}
+>
                         {/* Title + close button, combined pink pill */}
                         <div
-                            onClick={handleClose}
-                            style={{
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "flex-end",
-                                alignItems: "center",
-                                gap: 8,
-                                width: "fit-content",
-                                margin: "0 auto",
-                                background: pink,
-                                flexShrink: 0,
-                                cursor: "pointer",
-                            }}
-                        >
+    onClick={handleClose}
+    style={{
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        alignItems: "center",
+        gap: 8,
+        width: "fit-content",
+        marginLeft: "auto",
+        background: pink,
+        flexShrink: 0,
+        cursor: "pointer",
+    }}
+>
                             <div
                                 style={{
                                     display: "flex",
@@ -7670,57 +7672,62 @@ function DeleteConfirmModal({
                         </div>
 
                         {/* Panel */}
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "flex-start",
-                                gap: 24,
-                                width: "100%",
-                                background: modalBg,
-                                padding: "24px 0",
-                                boxSizing: "border-box",
-                            }}
-                        >
-                            <p style={{ ...labelStyle, margin: 0 }}>
-                                {entryTitle
-                                    ? `Delete "${entryTitle}"? This can't be undone.`
-                                    : "Delete this entry? This can't be undone."}
-                            </p>
+<div
+    style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 24,
+        width: "100%",
+        background: modalBg,
+        padding: "24px 0 0",
+        boxSizing: "border-box",
+    }}
+>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <span style={{ ...labelStyle, color: mutedTextColor }}>
+            Delete Entry
+        </span>
+        <p style={{ ...labelStyle, margin: 0 }}>
+            {entryTitle
+                ? `Are you sure you want to delete "${entryTitle}"? It can't be undone.`
+                : "Are you sure you want to delete this entry? It can't be undone."}
+        </p>
+    </div>
 
-                            <div style={{ display: "flex", flexDirection: "row", width: "50%" }}>
-                                <div
-                                    onClick={handleClose}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "flex-start",
-                                        flex: 1,
-                                        padding: "8px 0",
-                                        background: cancelBg,
-                                        cursor: "pointer",
-                                    }}
-                                >
-                                    <span style={{ ...labelStyle, color: cancelTextColor }}>
-                                        Cancel
-                                    </span>
-                                </div>
-                                <div
-                                    onClick={handleConfirm}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "flex-start",
-                                        flex: 1,
-                                        padding: "8px 0",
-                                        background: pink,
-                                        cursor: "pointer",
-                                    }}
-                                >
-                                    <span style={{ ...labelStyle, color: dark }}>Delete</span>
-                                </div>
-                            </div>
-                        </div>
+    <div style={{ display: "flex", flexDirection: "row", width: "50%" }}>
+        <div
+            onClick={handleClose}
+            style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                flex: 1,
+                padding: "8px 0",
+                background: cancelBg,
+                cursor: "pointer",
+            }}
+        >
+            <span style={{ ...labelStyle, color: cancelTextColor }}>
+                Cancel
+            </span>
+        </div>
+        <div
+            onClick={handleConfirm}
+            style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                flex: 1,
+                padding: "8px 0",
+                background: pink,
+                cursor: "pointer",
+            }}
+        >
+            <span style={{ ...labelStyle, color: dark }}>Delete</span>
+        </div>
+    </div>
+</div>
                     </motion.div>
                 </>
             )}
