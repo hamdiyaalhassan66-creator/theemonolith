@@ -3593,7 +3593,11 @@ function EntryAddedToast({
                     }}
                 >
                     {/* Title pill */}
-                    <div
+<div
+    onClick={() => {
+        playClickSound()
+        onClose()
+    }}
     style={{
         display: "flex",
         flexDirection: "row",
@@ -3602,6 +3606,7 @@ function EntryAddedToast({
         gap: 8,
         width: "fit-content",
         background: pink,
+        cursor: "pointer",
     }}
 >
     <div
@@ -3615,61 +3620,24 @@ function EntryAddedToast({
     >
         <span style={chipTextStyle}>{label}</span>
     </div>
-
     <div
         style={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
+            justifyContent: "center",
+            padding: 3,
+            width: 22,
+            height: 22,
+            boxSizing: "border-box",
+            cursor: "pointer",
         }}
     >
-        {onUndo && (
-            <div
-                onClick={() => {
-                    playClickSound()
-                    onUndo()
-                }}
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "4px 6px",
-                    cursor: "pointer",
-                }}
-            >
-                <span
-                    style={{
-                        ...chipTextStyle,
-                        textDecoration: "underline",
-                    }}
-                >
-                    Undo
-                </span>
-            </div>
-        )}
-        <div
-            onClick={() => {
-                playClickSound()
-                onClose()
-            }}
-            style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 3,
-                width: 22,
-                height: 22,
-                boxSizing: "border-box",
-                cursor: "pointer",
-            }}
-        >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                    d="M13.0306 11.9695C13.1715 12.1104 13.2506 12.3015 13.2506 12.5007C13.2506 12.7 13.1715 12.8911 13.0306 13.032C12.8897 13.1729 12.6986 13.252 12.4993 13.252C12.3001 13.252 12.109 13.1729 11.9681 13.032L7.99997 9.06261L4.0306 13.0307C3.8897 13.1716 3.69861 13.2508 3.49935 13.2508C3.30009 13.2508 3.10899 13.1716 2.9681 13.0307C2.8272 12.8898 2.74805 12.6987 2.74805 12.4995C2.74805 12.3002 2.8272 12.1091 2.9681 11.9682L6.93747 8.00011L2.96935 4.03073C2.82845 3.88984 2.7493 3.69874 2.7493 3.49948C2.7493 3.30023 2.82845 3.10913 2.96935 2.96823C3.11024 2.82734 3.30134 2.74818 3.5006 2.74818C3.69986 2.74818 3.89095 2.82734 4.03185 2.96823L7.99997 6.93761L11.9693 2.96761C12.1102 2.82671 12.3013 2.74756 12.5006 2.74756C12.6999 2.74756 12.891 2.82671 13.0318 2.96761C13.1727 3.10851 13.2519 3.2996 13.2519 3.49886C13.2519 3.69812 13.1727 3.88921 13.0318 4.03011L9.06247 8.00011L13.0306 11.9695Z"
-                    fill={dark}
-                />
-            </svg>
-        </div>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path
+                d="M13.0306 11.9695C13.1715 12.1104 13.2506 12.3015 13.2506 12.5007C13.2506 12.7 13.1715 12.8911 13.0306 13.032C12.8897 13.1729 12.6986 13.252 12.4993 13.252C12.3001 13.252 12.109 13.1729 11.9681 13.032L7.99997 9.06261L4.0306 13.0307C3.8897 13.1716 3.69861 13.2508 3.49935 13.2508C3.30009 13.2508 3.10899 13.1716 2.9681 13.0307C2.8272 12.8898 2.74805 12.6987 2.74805 12.4995C2.74805 12.3002 2.8272 12.1091 2.9681 11.9682L6.93747 8.00011L2.96935 4.03073C2.82845 3.88984 2.7493 3.69874 2.7493 3.49948C2.7493 3.30023 2.82845 3.10913 2.96935 2.96823C3.11024 2.82734 3.30134 2.74818 3.5006 2.74818C3.69986 2.74818 3.89095 2.82734 4.03185 2.96823L7.99997 6.93761L11.9693 2.96761C12.1102 2.82671 12.3013 2.74756 12.5006 2.74756C12.6999 2.74756 12.891 2.82671 13.0318 2.96761C13.1727 3.10851 13.2519 3.2996 13.2519 3.49886C13.2519 3.69812 13.1727 3.88921 13.0318 4.03011L9.06247 8.00011L13.0306 11.9695Z"
+                fill={dark}
+            />
+        </svg>
     </div>
 </div>
 
@@ -3705,16 +3673,26 @@ function EntryAddedToast({
                             }}
                         />
                         <div
-                            ref={textStackRef}
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "center",
-                                alignItems: "flex-start",
-                                flex: 1,
-                                minWidth: 0,
-                            }}
-                        >
+    style={{
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flex: 1,
+        minWidth: 0,
+        gap: 8,
+    }}
+>
+    <div
+        ref={textStackRef}
+        style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            minWidth: 0,
+        }}
+    >
                             <div
                                 style={{
                                     display: "flex",
@@ -3808,7 +3786,26 @@ function EntryAddedToast({
                                     </div>
                                 )}
                             </div>
-                        </div>
+                            </div>
+
+    {onUndo && (
+        <div
+            onClick={() => {
+                playClickSound()
+                onUndo()
+            }}
+            style={{
+                ...plainChipTextStyle,
+                textDecoration: "underline",
+                cursor: "pointer",
+                flexShrink: 0,
+                paddingRight: 8,
+            }}
+        >
+            Undo
+        </div>
+    )}
+</div>
                     </div>
                 </motion.div>
             )}
@@ -7996,7 +7993,49 @@ const mutedThemedTextColor =
                                         </div>
                                     )}
 
-                                    {isMine && (
+                                    {img.externalLink && (
+                                        <a
+                                            href={img.externalLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                playClickSound()
+                                            }}
+                                            onMouseEnter={() =>
+                                                onCursorHoverChange?.(false)
+                                            }
+                                            onMouseLeave={() =>
+                                                onCursorHoverChange?.(true)
+                                            }
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                padding: "8px 24px 8px 0px",
+                                                gap: 8,
+                                                width: 117,
+                                                height: 26,
+                                                background: pink,
+                                                textDecoration: "none",
+                                                pointerEvents: "auto",
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    fontFamily: font,
+                                                    fontWeight: 500,
+                                                    fontSize: 14,
+                                                    lineHeight: "17px",
+                                                    color: dark,
+                                                }}
+                                            >
+                                                {getActionLabel(activeCategory)}
+                                            </span>
+                                        </a>
+                                    )}
+
+{isMine && (
     <div
         style={{
             display: "flex",
@@ -8044,47 +8083,6 @@ const mutedThemedTextColor =
     </div>
 )}
 
-                                    {img.externalLink && (
-                                        <a
-                                            href={img.externalLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                playClickSound()
-                                            }}
-                                            onMouseEnter={() =>
-                                                onCursorHoverChange?.(false)
-                                            }
-                                            onMouseLeave={() =>
-                                                onCursorHoverChange?.(true)
-                                            }
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                padding: "8px 24px 8px 0px",
-                                                gap: 8,
-                                                width: 117,
-                                                height: 26,
-                                                background: pink,
-                                                textDecoration: "none",
-                                                pointerEvents: "auto",
-                                                cursor: "pointer",
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    fontFamily: font,
-                                                    fontWeight: 500,
-                                                    fontSize: 14,
-                                                    lineHeight: "17px",
-                                                    color: dark,
-                                                }}
-                                            >
-                                                {getActionLabel(activeCategory)}
-                                            </span>
-                                        </a>
-                                    )}
                                 </div>
                             </motion.div>
                         </motion.div>
