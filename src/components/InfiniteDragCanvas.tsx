@@ -5246,10 +5246,12 @@ useEffect(() => {
                 editingEntry ? "Entry update failed:" : "Entry insert failed:",
                 insertError
             )
+            const rawMessage =
+                insertError instanceof Error
+                    ? insertError.message
+                    : String(insertError)
             setSubmitError(
-                editingEntry
-                    ? "Couldn't save changes. Please try again."
-                    : "Couldn't submit entry. Please try again."
+                `${editingEntry ? "Couldn't save changes" : "Couldn't submit entry"}: ${rawMessage}`
             )
         }
     } finally {
