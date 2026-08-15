@@ -7601,7 +7601,7 @@ function DeleteConfirmModal({
     style={{
         position: "fixed",
         left: "50%",
-        bottom: 24,
+        bottom: 0,
         transform: "translateX(-50%)",
         width: 464,
         maxWidth: "calc(100% - 16px)",
