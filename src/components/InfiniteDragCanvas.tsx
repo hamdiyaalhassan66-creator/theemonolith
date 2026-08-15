@@ -5265,7 +5265,7 @@ useEffect(() => {
         if (!panel) return
         const panelHeight = panel.scrollHeight
         const viewportHeight = window.innerHeight
-        expandedOffsetRef.current = -78
+        expandedOffsetRef.current = 0
         collapsedOffsetRef.current = Math.max(
             0,
             panelHeight - viewportHeight * 0.5
@@ -7372,26 +7372,26 @@ function InfoModal({
                         }}
                     />
                     <motion.div
-                        initial={{ x: "100%" }}
-                        animate={{ x: 0 }}
-                        exit={{ x: "100%" }}
-                        transition={{
-                            duration: 0.45,
-                            ease: [0.16, 1, 0.3, 1],
-                        }}
-                        style={{
-                            position: "fixed",
-                            right: 8,
-                            bottom: 78,
-                            width: "50vw",
-                            maxWidth: 708,
-                            height: "calc(50vh - 78px)",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-end",
-                            zIndex: 10002,
-                        }}
-                    >
+    initial={{ y: "100%" }}
+    animate={{ y: 0 }}
+    exit={{ y: "100%" }}
+    transition={{
+        duration: 0.45,
+        ease: [0.16, 1, 0.3, 1],
+    }}
+    style={{
+        position: "fixed",
+        right: 8,
+        bottom: 0,
+        width: "50vw",
+        maxWidth: 708,
+        height: "calc(50vh - 78px)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        zIndex: 10002,
+    }}
+>
                         {/* Title + close button, combined pink pill */}
                         <div
                             onClick={handleClose}
@@ -7601,8 +7601,8 @@ function DeleteConfirmModal({
     style={{
         position: "fixed",
         left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
+        bottom: 24,
+        transform: "translateX(-50%)",
         width: 464,
         maxWidth: "calc(100% - 16px)",
         zIndex: 10002,
