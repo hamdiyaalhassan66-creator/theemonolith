@@ -5450,31 +5450,35 @@ useEffect(() => {
                         }}
                     />
                     <motion.div
-                        ref={outerRef}
-                        initial={{ x: "100%" }}
-                        animate={{ x: 0 }}
-                        exit={{ x: "100%" }}
-                        transition={{
-                            duration: 0.45,
-                            ease: [0.16, 1, 0.3, 1],
-                        }}
-                        onWheel={handleWheelMove}
-                        onTouchStart={handleTouchStart}
-                        onTouchMove={handleTouchMove}
-                        onTouchEnd={handleTouchEnd}
-                        onTouchCancel={handleTouchEnd}
-                        onKeyDown={handleKeyDown}
-                        style={{
-                            position: "fixed",
-                            right: 8,
-                            bottom: 0,
-                            width: "50vw",
-                            background: "transparent",
-                            zIndex: 10002,
-                            y: panelOffsetY,
-                            touchAction: "none",
-                        }}
-                    >
+    initial={{ y: "100%" }}
+    animate={{ y: 0 }}
+    exit={{ y: "100%" }}
+    transition={{
+        duration: 0.45,
+        ease: [0.16, 1, 0.3, 1],
+    }}
+    style={{
+        position: "fixed",
+        right: 8,
+        bottom: 0,
+        width: "50vw",
+        zIndex: 10002,
+    }}
+>
+    <motion.div
+        ref={outerRef}
+        onWheel={handleWheelMove}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        onKeyDown={handleKeyDown}
+        style={{
+            background: "transparent",
+            y: panelOffsetY,
+            touchAction: "none",
+        }}
+    >
                         <div
                             style={{
                                 display: "flex",
@@ -6377,6 +6381,7 @@ useEffect(() => {
                                 </div>
                             </div>
                         </div>
+                    </motion.div>
                     </motion.div>
                 </>
             )}
