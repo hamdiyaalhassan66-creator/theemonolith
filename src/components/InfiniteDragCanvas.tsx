@@ -7547,7 +7547,7 @@ function DeleteConfirmModal({
     const cancelBg = theme === "light" ? white : dark
     const cancelTextColor = theme === "light" ? dark : white
     const mutedTextColor =
-    theme === "light" ? "rgba(28,28,28,0.55)" : "rgba(254,254,254,0.55)"
+    theme === "light" ? "rgba(254,254,254,0.55)" : "rgba(28,28,28,0.55)"
 
     const labelStyle: React.CSSProperties = {
         fontFamily: font,
