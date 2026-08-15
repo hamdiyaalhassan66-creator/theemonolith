@@ -7523,6 +7523,211 @@ function InfoModal({
     )
 }
 
+// ─── DeleteConfirmModal ─────────────────────────────────────────────────────
+function DeleteConfirmModal({
+    visible,
+    onClose,
+    onConfirm,
+    theme,
+    entryTitle,
+}: {
+    visible: boolean
+    onClose: () => void
+    onConfirm: () => void
+    theme: "light" | "dark"
+    entryTitle?: string
+}) {
+    const font = "'Spline Sans Mono', monospace"
+    const pink = "#E298F2"
+    const dark = "#1C1C1C"
+    const white = "#FEFEFE"
+
+    const modalBg = theme === "light" ? dark : white
+    const textColor = theme === "light" ? white : dark
+    const cancelBg = theme === "light" ? white : dark
+    const cancelTextColor = theme === "light" ? dark : white
+
+    const labelStyle: React.CSSProperties = {
+        fontFamily: font,
+        fontWeight: 500,
+        fontSize: 14,
+        lineHeight: "17px",
+        color: textColor,
+    }
+
+    const handleClose = () => {
+        playClickSound()
+        onClose()
+    }
+
+    const handleConfirm = () => {
+        playClickSound()
+        onConfirm()
+    }
+
+    useEffect(() => {
+        if (!visible) return
+        if (typeof document === "undefined") return
+        const prevOverflow = document.body.style.overflow
+        document.body.style.overflow = "hidden"
+        return () => {
+            document.body.style.overflow = prevOverflow
+        }
+    }, [visible])
+
+    return (
+        <AnimatePresence>
+            {visible && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        onClick={handleClose}
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            zIndex: 10001,
+                            backdropFilter: "blur(8px)",
+                            WebkitBackdropFilter: "blur(8px)",
+                            pointerEvents: "auto",
+                            cursor: "pointer",
+                        }}
+                    />
+                    <motion.div
+                        initial={{ y: "100%" }}
+                        animate={{ y: 0 }}
+                        exit={{ y: "100%" }}
+                        transition={{
+                            duration: 0.45,
+                            ease: [0.16, 1, 0.3, 1],
+                        }}
+                        style={{
+                            position: "fixed",
+                            left: "50%",
+                            bottom: 0,
+                            transform: "translateX(-50%)",
+                            width: "50vw",
+                            maxWidth: 708,
+                            zIndex: 10002,
+                        }}
+                    >
+                        {/* Title + close button, combined pink pill */}
+                        <div
+                            onClick={handleClose}
+                            style={{
+                                display: "flex",
+                                flexDirection: "row",
+                                justifyContent: "flex-end",
+                                alignItems: "center",
+                                gap: 8,
+                                width: "fit-content",
+                                margin: "0 auto",
+                                background: pink,
+                                flexShrink: 0,
+                                cursor: "pointer",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "row",
+                                    justifyContent: "flex-end",
+                                    alignItems: "flex-end",
+                                    padding: "8px 0px",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        ...labelStyle,
+                                        fontSize: 14,
+                                        color: dark,
+                                    }}
+                                >
+                                    Delete entry
+                                </span>
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    padding: 3,
+                                    width: 26,
+                                    height: 26,
+                                    boxSizing: "border-box",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path
+                                        d="M13.0306 11.9695C13.1715 12.1104 13.2506 12.3015 13.2506 12.5007C13.2506 12.7 13.1715 12.8911 13.0306 13.032C12.8897 13.1729 12.6986 13.252 12.4993 13.252C12.3001 13.252 12.109 13.1729 11.9681 13.032L7.99997 9.06261L4.0306 13.0307C3.8897 13.1716 3.69861 13.2508 3.49935 13.2508C3.30009 13.2508 3.10899 13.1716 2.9681 13.0307C2.8272 12.8898 2.74805 12.6987 2.74805 12.4995C2.74805 12.3002 2.8272 12.1091 2.9681 11.9682L6.93747 8.00011L2.96935 4.03073C2.82845 3.88984 2.7493 3.69874 2.7493 3.49948C2.7493 3.30023 2.82845 3.10913 2.96935 2.96823C3.11024 2.82734 3.30134 2.74818 3.5006 2.74818C3.69986 2.74818 3.89095 2.82734 4.03185 2.96823L7.99997 6.93761L11.9693 2.96761C12.1102 2.82671 12.3013 2.74756 12.5006 2.74756C12.6999 2.74756 12.891 2.82671 13.0318 2.96761C13.1727 3.10851 13.2519 3.2996 13.2519 3.49886C13.2519 3.69812 13.1727 3.88921 13.0318 4.03011L9.06247 8.00011L13.0306 11.9695Z"
+                                        fill={dark}
+                                    />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Panel */}
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "flex-start",
+                                gap: 24,
+                                width: "100%",
+                                background: modalBg,
+                                padding: "24px 0",
+                                boxSizing: "border-box",
+                            }}
+                        >
+                            <p style={{ ...labelStyle, margin: 0 }}>
+                                {entryTitle
+                                    ? `Delete "${entryTitle}"? This can't be undone.`
+                                    : "Delete this entry? This can't be undone."}
+                            </p>
+
+                            <div style={{ display: "flex", flexDirection: "row", width: "50%" }}>
+                                <div
+                                    onClick={handleClose}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "flex-start",
+                                        flex: 1,
+                                        padding: "8px 0",
+                                        background: cancelBg,
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    <span style={{ ...labelStyle, color: cancelTextColor }}>
+                                        Cancel
+                                    </span>
+                                </div>
+                                <div
+                                    onClick={handleConfirm}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "flex-start",
+                                        flex: 1,
+                                        padding: "8px 0",
+                                        background: pink,
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    <span style={{ ...labelStyle, color: dark }}>Delete</span>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    )
+}
+
 // ─── EntryDetailModal ───────────────────────────────────────────────────────
 function EntryDetailModal({
     visible,
@@ -8896,6 +9101,7 @@ export default function InfiniteDragCanvas({
     const viewCursorRef = useRef<HTMLDivElement>(null)
     const isOverActionButtonRef = useRef(false)
     const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
+    const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<Entry | null>(null)
 
     const cancelHoverClear = () => {
         if (hoverClearTimeoutRef.current) {
@@ -9292,11 +9498,14 @@ const [updatedToastEntry, setUpdatedToastEntry] =
     setShowNewEntryModal(true)
 }, [])
 
-const handleDeleteEntry = useCallback(async (entry: Entry) => {
-    const confirmed = window.confirm(
-        `Delete "${entry.title}"? This can't be undone.`
-    )
-    if (!confirmed) return
+const handleDeleteEntry = useCallback((entry: Entry) => {
+    setDeleteConfirmEntry(entry)
+}, [])
+
+const handleConfirmDelete = useCallback(async () => {
+    const entry = deleteConfirmEntry
+    if (!entry) return
+    setDeleteConfirmEntry(null)
     setViewingEntry(null)
     setClickedKey(null)
     setViewCursorVisible(false)
@@ -9307,7 +9516,7 @@ const handleDeleteEntry = useCallback(async (entry: Entry) => {
     } catch (err) {
         console.error("Delete failed:", err)
     }
-}, [])
+}, [deleteConfirmEntry])
 
     const handleUndoNewEntry = useCallback(async (entryId: string) => {
     setToastEntry(null)
@@ -10131,6 +10340,13 @@ const handleDeleteEntry = useCallback(async (entry: Entry) => {
                 onClose={() => setShowInfoModal(false)}
                 theme={theme}
             />
+            <DeleteConfirmModal
+    visible={!!deleteConfirmEntry}
+    onClose={() => setDeleteConfirmEntry(null)}
+    onConfirm={handleConfirmDelete}
+    theme={theme}
+    entryTitle={deleteConfirmEntry?.title}
+/>
             <EntryDetailModal
     visible={!!viewingEntry}
     onClose={() => {
