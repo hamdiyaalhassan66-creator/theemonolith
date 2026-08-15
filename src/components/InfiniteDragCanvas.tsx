@@ -4973,13 +4973,17 @@ function NewEntryModal({
     const [previewUrl, setPreviewUrl] = useState("")
     const [isDraggingCover, setIsDraggingCover] = useState(false)
     const [submitting, setSubmitting] = useState(false)
+const [isDirty, setIsDirty] = useState(false)
+const initialSnapshotRef = useRef<string>("")
     const isFormValid =
-        title.trim().length > 0 &&
-        artist.trim().length > 0 &&
-        type.trim().length > 0 &&
-        genres.length > 0 &&
-        releaseYear.trim().length > 0
-    const isEditing = !!editingEntry 
+    title.trim().length > 0 &&
+    artist.trim().length > 0 &&
+    type.trim().length > 0 &&
+    genres.length > 0 &&
+    releaseYear.trim().length > 0
+const isEditing = !!editingEntry
+const isSubmitDisabled =
+    submitting || !isFormValid || (isEditing && !isDirty)
     const errorBorderColor = "#FF5C5C"
     const [showValidation, setShowValidation] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -5017,13 +5021,71 @@ function NewEntryModal({
             setCoverPreview(editingEntry.cover_image_url)
             setUrl(editingEntry.external_link || "")
             setPreviewUrl(editingEntry.preview_url || "")
+            initialSnapshotRef.current = JSON.stringify({
+                category:
+                    REVERSE_CATEGORY_MAP[editingEntry.category] ||
+                    defaultCategory,
+                type: toTitleCaseLabel(editingEntry.subcategory),
+                genres: editingEntry.genre
+                    ? editingEntry.genre.split(",")
+                    : [],
+                title: editingEntry.title,
+                artist: editingEntry.creator_name,
+                releaseYear: editingEntry.release_year
+                    ? String(editingEntry.release_year)
+                    : "",
+                comment: editingEntry.comment || "",
+                username:
+                    editingEntry.poster_username === "Anonymous"
+                        ? ""
+                        : editingEntry.poster_username,
+                coverPreview: editingEntry.cover_image_url,
+                url: editingEntry.external_link || "",
+                previewUrl: editingEntry.preview_url || "",
+            })
+            setIsDirty(false)
         } else {
             setCategory(defaultCategory)
+            initialSnapshotRef.current = ""
+            setIsDirty(false)
         }
     } else {
         resetForm()
     }
 }, [visible, defaultCategory, editingEntry])
+
+useEffect(() => {
+    if (!editingEntry || !visible) return
+    const current = JSON.stringify({
+        category,
+        type,
+        genres,
+        title,
+        artist,
+        releaseYear,
+        comment,
+        username,
+        coverPreview,
+        url,
+        previewUrl,
+    })
+    setIsDirty(current !== initialSnapshotRef.current || !!coverFile)
+}, [
+    category,
+    type,
+    genres,
+    title,
+    artist,
+    releaseYear,
+    comment,
+    username,
+    coverPreview,
+    url,
+    previewUrl,
+    coverFile,
+    editingEntry,
+    visible,
+])
 
     const toggleGenre = (g: string) => {
         setGenres((prev) => {
@@ -5072,15 +5134,14 @@ function NewEntryModal({
     }
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (
-            e.key === "Enter" &&
-            (e.target as HTMLElement).tagName !== "TEXTAREA"
-        ) {
-            e.preventDefault()
-            if (isFormValid && !submitting) handleSubmit()
-        }
+    if (
+        e.key === "Enter" &&
+        (e.target as HTMLElement).tagName !== "TEXTAREA"
+    ) {
+        e.preventDefault()
+        if (!isSubmitDisabled) handleSubmit()
     }
-
+}
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
@@ -6253,7 +6314,7 @@ function NewEntryModal({
                                             </span>
                                         </div>
                                         <div
-    onClick={!isFormValid || submitting ? undefined : handleSubmit}
+    onClick={isSubmitDisabled ? undefined : handleSubmit}
     style={{
         display: "flex",
         alignItems: "center",
@@ -6264,15 +6325,11 @@ function NewEntryModal({
         background: pink,
         cursor: submitting
             ? "default"
-            : !isFormValid
+            : isSubmitDisabled
               ? "not-allowed"
               : "pointer",
-        opacity: submitting
-            ? 0.6
-            : !isFormValid
-              ? 0.4
-              : 1,
-        pointerEvents: !isFormValid || submitting ? "none" : "auto",
+        opacity: submitting ? 0.6 : isSubmitDisabled ? 0.4 : 1,
+        pointerEvents: isSubmitDisabled ? "none" : "auto",
     }}
 >
                                             {submitting && (
