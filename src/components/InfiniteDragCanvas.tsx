@@ -8001,9 +8001,75 @@ const inactiveToggleBg =
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
-            gap: 8,
+            gap: 0,
         }}
     >
+        {isMine && (
+            <div
+                onClick={(e) => {
+                    e.stopPropagation()
+                    playClickSound()
+                    onEdit?.(entry)
+                }}
+                onMouseEnter={() => onCursorHoverChange?.(false)}
+                onMouseLeave={() => onCursorHoverChange?.(true)}
+                style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    padding: "8px 24px 8px 0px",
+                    gap: 8,
+                    width: "fit-content",
+                    height: 26,
+                    background: inactiveToggleBg,
+                    cursor: "pointer",
+                    pointerEvents: "auto",
+                }}
+            >
+                <span
+                    style={{
+                        ...chipTextStyle,
+                        color: themedTextColor,
+                    }}
+                >
+                    Edit
+                </span>
+            </div>
+        )}
+        {isMine && (
+            <div
+                onClick={(e) => {
+                    e.stopPropagation()
+                    playClickSound()
+                    onDelete?.(entry)
+                }}
+                onMouseEnter={() => onCursorHoverChange?.(false)}
+                onMouseLeave={() => onCursorHoverChange?.(true)}
+                style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    padding: "8px 24px 8px 0px",
+                    gap: 8,
+                    width: "fit-content",
+                    height: 26,
+                    background: inactiveToggleBg,
+                    cursor: "pointer",
+                    pointerEvents: "auto",
+                }}
+            >
+                <span
+                    style={{
+                        ...chipTextStyle,
+                        color: themedTextColor,
+                    }}
+                >
+                    Delete
+                </span>
+            </div>
+        )}
         {img.externalLink && (
             <a
                 href={img.externalLink}
@@ -8044,74 +8110,6 @@ const inactiveToggleBg =
                     {getActionLabel(activeCategory)}
                 </span>
             </a>
-        )}
-        {isMine && (
-            <div
-                onClick={(e) => {
-                    e.stopPropagation()
-                    playClickSound()
-                    onEdit?.(entry)
-                }}
-                onMouseEnter={() => onCursorHoverChange?.(false)}
-                onMouseLeave={() => onCursorHoverChange?.(true)}
-                style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    padding: "8px 24px 8px 0px",
-                    gap: 8,
-                    width: "fit-content",
-                    height: 26,
-                    background: inactiveToggleBg,
-                    boxSizing: "border-box",
-                    cursor: "pointer",
-                    pointerEvents: "auto",
-                }}
-            >
-                <span
-                    style={{
-                        ...chipTextStyle,
-                        color: themedTextColor,
-                    }}
-                >
-                    Edit
-                </span>
-            </div>
-        )}
-        {isMine && (
-            <div
-                onClick={(e) => {
-                    e.stopPropagation()
-                    playClickSound()
-                    onDelete?.(entry)
-                }}
-                onMouseEnter={() => onCursorHoverChange?.(false)}
-                onMouseLeave={() => onCursorHoverChange?.(true)}
-                style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    padding: "8px 24px 8px 0px",
-                    gap: 8,
-                    width: "fit-content",
-                    height: 26,
-                    background: inactiveToggleBg,
-                    boxSizing: "border-box",
-                    cursor: "pointer",
-                    pointerEvents: "auto",
-                }}
-            >
-                <span
-                    style={{
-                        ...chipTextStyle,
-                        color: themedTextColor,
-                    }}
-                >
-                    Delete
-                </span>
-            </div>
         )}
     </div>
 )}
