@@ -7597,27 +7597,29 @@ function DeleteConfirmModal({
                             cursor: "pointer",
                         }}
                     />
-                    <motion.div
-    initial={{ y: "100%" }}
-    animate={{ y: 0 }}
-    exit={{ y: "100%" }}
-    transition={{
-        duration: 0.45,
-        ease: [0.16, 1, 0.3, 1],
-    }}
+                    <div
     style={{
         position: "fixed",
         left: "50%",
-        bottom: 0,
-        transform: "translateX(-50%)",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
         width: 464,
         maxWidth: "calc(100% - 16px)",
         zIndex: 10002,
     }}
 >
-                        {/* Title + close button, combined pink pill */}
-                        <div
-    onClick={handleClose}
+    <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 40 }}
+        transition={{
+            duration: 0.45,
+            ease: [0.16, 1, 0.3, 1],
+        }}
+    >
+        {/* Title + close button, combined pink pill */}
+        <div
+            onClick={handleClose}
     style={{
         display: "flex",
         flexDirection: "row",
@@ -7680,7 +7682,7 @@ function DeleteConfirmModal({
         gap: 24,
         width: "100%",
         background: modalBg,
-        padding: "24px 0 0",
+        padding: 0,
         boxSizing: "border-box",
     }}
 >
@@ -7728,7 +7730,8 @@ function DeleteConfirmModal({
         </div>
     </div>
 </div>
-                    </motion.div>
+    </motion.div>
+</div>
                 </>
             )}
         </AnimatePresence>
