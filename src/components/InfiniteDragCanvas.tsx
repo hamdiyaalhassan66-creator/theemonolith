@@ -6253,27 +6253,28 @@ function NewEntryModal({
                                             </span>
                                         </div>
                                         <div
-                                            onClick={handleSubmit}
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "flex-start",
-                                                flex: 1,
-                                                padding: "8px 0",
-                                                gap: 6,
-                                                background: pink,
-                                                cursor: submitting
-                                                    ? "default"
-                                                    : !isFormValid
-                                                      ? "not-allowed"
-                                                      : "pointer",
-                                                opacity: submitting
-                                                    ? 0.6
-                                                    : !isFormValid
-                                                      ? 0.4
-                                                      : 1,
-                                            }}
-                                        >
+    onClick={!isFormValid || submitting ? undefined : handleSubmit}
+    style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        flex: 1,
+        padding: "8px 0",
+        gap: 6,
+        background: pink,
+        cursor: submitting
+            ? "default"
+            : !isFormValid
+              ? "not-allowed"
+              : "pointer",
+        opacity: submitting
+            ? 0.6
+            : !isFormValid
+              ? 0.4
+              : 1,
+        pointerEvents: !isFormValid || submitting ? "none" : "auto",
+    }}
+>
                                             {submitting && (
                                                 <LoadingDots
                                                     size={16}
@@ -8839,8 +8840,10 @@ export default function InfiniteDragCanvas({
     const [viewingEntry, setViewingEntry] = useState<Entry | null>(null)
     const [clickedKey, setClickedKey] = useState<string | null>(null)
     const [toastEntry, setToastEntry] = useState<ToastEntryData | null>(null)
-    const [duplicateToastEntry, setDuplicateToastEntry] =
-        useState<ToastEntryData | null>(null)
+const [duplicateToastEntry, setDuplicateToastEntry] =
+    useState<ToastEntryData | null>(null)
+const [updatedToastEntry, setUpdatedToastEntry] =
+    useState<ToastEntryData | null>(null)
 
     const activeFilters = filtersByCategory[activeCategory] ?? DEFAULT_FILTERS
     const [viewMode, setViewMode] = useState<"freeform" | "carousel">(
@@ -9968,18 +9971,12 @@ const handleDeleteEntry = useCallback(async (entry: Entry) => {
         })
     }}
     onSubmitted={(entry) => {
-        if (editingEntry) {
-            setEntries((prev) =>
-                prev.map((e) => (e.id === entry.id ? entry : e))
-            )
-            setEditingEntry(null)
-            return
-        }
-        if (entry.category === CATEGORY_MAP[activeCategory]) {
-            setEntries((prev) => [entry, ...prev])
-        }
-        addMyEntryId(entry.id)
-        setToastEntry({
+    if (editingEntry) {
+        setEntries((prev) =>
+            prev.map((e) => (e.id === entry.id ? entry : e))
+        )
+        setEditingEntry(null)
+        setUpdatedToastEntry({
             entryId: entry.id,
             title: entry.title,
             creatorName: entry.creator_name,
@@ -9990,7 +9987,24 @@ const handleDeleteEntry = useCallback(async (entry: Entry) => {
                 : undefined,
             releaseYear: entry.release_year,
         })
-    }}
+        return
+    }
+    if (entry.category === CATEGORY_MAP[activeCategory]) {
+        setEntries((prev) => [entry, ...prev])
+    }
+    addMyEntryId(entry.id)
+    setToastEntry({
+        entryId: entry.id,
+        title: entry.title,
+        creatorName: entry.creator_name,
+        coverImageUrl: entry.cover_image_url,
+        type: toTitleCaseLabel(entry.subcategory),
+        genre: entry.genre
+            ? entry.genre.split(",")[0]
+            : undefined,
+        releaseYear: entry.release_year,
+    })
+}}
 />
             <EntryAddedToast
     entry={toastEntry}
@@ -10007,6 +10021,12 @@ const handleDeleteEntry = useCallback(async (entry: Entry) => {
     onClose={() => setDuplicateToastEntry(null)}
     theme={theme}
     label="Already In Directory"
+/>
+<EntryAddedToast
+    entry={updatedToastEntry}
+    onClose={() => setUpdatedToastEntry(null)}
+    theme={theme}
+    label="Entry Updated"
 />
             <FilterModal
                 visible={showFilterModal}
