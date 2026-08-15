@@ -7486,6 +7486,8 @@ const textColor = theme === "light" ? white : dark
 const themedTextColor = theme === "light" ? dark : white
 const mutedThemedTextColor =
     theme === "light" ? "rgba(28,28,28,0.55)" : "rgba(254,254,254,0.55)"
+const inactiveToggleBg =
+    theme === "light" ? "rgba(28, 28, 28, 0.06)" : "rgba(254, 254, 254, 0.10)"
 
     const chipTextStyle: React.CSSProperties = {
         fontFamily: font,
@@ -7993,93 +7995,124 @@ const mutedThemedTextColor =
                                         </div>
                                     )}
 
-                                    {img.externalLink && (
-                                        <a
-                                            href={img.externalLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                playClickSound()
-                                            }}
-                                            onMouseEnter={() =>
-                                                onCursorHoverChange?.(false)
-                                            }
-                                            onMouseLeave={() =>
-                                                onCursorHoverChange?.(true)
-                                            }
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                padding: "8px 24px 8px 0px",
-                                                gap: 8,
-                                                width: 117,
-                                                height: 26,
-                                                background: pink,
-                                                textDecoration: "none",
-                                                pointerEvents: "auto",
-                                                cursor: "pointer",
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    fontFamily: font,
-                                                    fontWeight: 500,
-                                                    fontSize: 14,
-                                                    lineHeight: "17px",
-                                                    color: dark,
-                                                }}
-                                            >
-                                                {getActionLabel(activeCategory)}
-                                            </span>
-                                        </a>
-                                    )}
-
-{isMine && (
+                                    {(img.externalLink || isMine) && (
     <div
         style={{
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
-            gap: 16,
+            gap: 8,
         }}
     >
-        <span
-            onClick={(e) => {
-                e.stopPropagation()
-                playClickSound()
-                onEdit?.(entry)
-            }}
-            onMouseEnter={() => onCursorHoverChange?.(false)}
-            onMouseLeave={() => onCursorHoverChange?.(true)}
-            style={{
-                ...chipTextStyle,
-                color: themedTextColor,
-                textDecoration: "underline",
-                cursor: "pointer",
-                pointerEvents: "auto",
-            }}
-        >
-            Edit
-        </span>
-        <span
-            onClick={(e) => {
-                e.stopPropagation()
-                playClickSound()
-                onDelete?.(entry)
-            }}
-            onMouseEnter={() => onCursorHoverChange?.(false)}
-            onMouseLeave={() => onCursorHoverChange?.(true)}
-            style={{
-                ...chipTextStyle,
-                color: themedTextColor,
-                textDecoration: "underline",
-                cursor: "pointer",
-                pointerEvents: "auto",
-            }}
-        >
-            Delete
-        </span>
+        {img.externalLink && (
+            <a
+                href={img.externalLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                    e.stopPropagation()
+                    playClickSound()
+                }}
+                onMouseEnter={() =>
+                    onCursorHoverChange?.(false)
+                }
+                onMouseLeave={() =>
+                    onCursorHoverChange?.(true)
+                }
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "8px 24px 8px 0px",
+                    gap: 8,
+                    width: "fit-content",
+                    height: 26,
+                    background: pink,
+                    textDecoration: "none",
+                    pointerEvents: "auto",
+                    cursor: "pointer",
+                }}
+            >
+                <span
+                    style={{
+                        fontFamily: font,
+                        fontWeight: 500,
+                        fontSize: 14,
+                        lineHeight: "17px",
+                        color: dark,
+                    }}
+                >
+                    {getActionLabel(activeCategory)}
+                </span>
+            </a>
+        )}
+        {isMine && (
+            <div
+                onClick={(e) => {
+                    e.stopPropagation()
+                    playClickSound()
+                    onEdit?.(entry)
+                }}
+                onMouseEnter={() => onCursorHoverChange?.(false)}
+                onMouseLeave={() => onCursorHoverChange?.(true)}
+                style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    padding: "8px 24px 8px 0px",
+                    gap: 8,
+                    width: "fit-content",
+                    height: 26,
+                    background: inactiveToggleBg,
+                    boxSizing: "border-box",
+                    cursor: "pointer",
+                    pointerEvents: "auto",
+                }}
+            >
+                <span
+                    style={{
+                        ...chipTextStyle,
+                        color: themedTextColor,
+                    }}
+                >
+                    Edit
+                </span>
+            </div>
+        )}
+        {isMine && (
+            <div
+                onClick={(e) => {
+                    e.stopPropagation()
+                    playClickSound()
+                    onDelete?.(entry)
+                }}
+                onMouseEnter={() => onCursorHoverChange?.(false)}
+                onMouseLeave={() => onCursorHoverChange?.(true)}
+                style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    padding: "8px 24px 8px 0px",
+                    gap: 8,
+                    width: "fit-content",
+                    height: 26,
+                    background: inactiveToggleBg,
+                    boxSizing: "border-box",
+                    cursor: "pointer",
+                    pointerEvents: "auto",
+                }}
+            >
+                <span
+                    style={{
+                        ...chipTextStyle,
+                        color: themedTextColor,
+                    }}
+                >
+                    Delete
+                </span>
+            </div>
+        )}
     </div>
 )}
 
