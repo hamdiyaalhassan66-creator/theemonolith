@@ -4974,6 +4974,7 @@ function NewEntryModal({
     const [isDraggingCover, setIsDraggingCover] = useState(false)
     const [submitting, setSubmitting] = useState(false)
 const [isDirty, setIsDirty] = useState(false)
+const [submitError, setSubmitError] = useState<string | null>(null)
 const initialSnapshotRef = useRef<string>("")
     const isFormValid =
     title.trim().length > 0 &&
@@ -5115,6 +5116,7 @@ useEffect(() => {
 
     const resetForm = () => {
         setShowValidation(false)
+        setSubmitError(null)
         setType("")
         setGenres([])
         setTitle("")
@@ -5157,8 +5159,12 @@ useEffect(() => {
 
     const handleSubmit = async () => {
     if (submitting) return
+    setSubmitError(null)
     if (!isFormValid) {
         setShowValidation(true)
+        setSubmitError(
+            "Some required fields are missing — check highlighted fields above."
+        )
         return
     }
 
@@ -5239,6 +5245,11 @@ useEffect(() => {
             console.error(
                 editingEntry ? "Entry update failed:" : "Entry insert failed:",
                 insertError
+            )
+            setSubmitError(
+                editingEntry
+                    ? "Couldn't save changes. Please try again."
+                    : "Couldn't submit entry. Please try again."
             )
         }
     } finally {
@@ -6273,6 +6284,18 @@ useEffect(() => {
         />
     </div>
 </div>
+
+{submitError && (
+    <span
+        style={{
+            ...labelStyle,
+            fontSize: 12,
+            color: errorBorderColor,
+        }}
+    >
+        {submitError}
+    </span>
+)}
                                 </div>
 
                                 <div
