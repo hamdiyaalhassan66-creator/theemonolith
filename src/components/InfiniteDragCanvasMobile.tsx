@@ -107,6 +107,42 @@ async function addEntry(entryData: Record<string, any>): Promise<Entry> {
     return firestoreDocToEntry(doc)
 }
 
+async function deleteEntry(entryId: string): Promise<void> {
+    const res = await fetch(
+        `${FIRESTORE_BASE}/entries/${entryId}?key=${firebaseConfig.apiKey}`,
+        { method: "DELETE" }
+    )
+    if (!res.ok)
+        throw new Error(
+            `Firestore delete failed: ${res.status} ${await res.text()}`
+        )
+}
+
+async function updateEntry(
+    entryId: string,
+    entryData: Record<string, any>
+): Promise<Entry> {
+    const maskParams = Object.keys(entryData)
+        .map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`)
+        .join("&")
+    const res = await fetch(
+        `${FIRESTORE_BASE}/entries/${entryId}?key=${firebaseConfig.apiKey}&${maskParams}`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                fields: jsObjectToFirestoreFields(entryData),
+            }),
+        }
+    )
+    if (!res.ok)
+        throw new Error(
+            `Firestore update failed: ${res.status} ${await res.text()}`
+        )
+    const doc = await res.json()
+    return firestoreDocToEntry(doc)
+}
+
 const firebaseConfig = {
     apiKey: "AIzaSyB3comQKuAEtrCp5NlaCyzrCM06kIVynII",
     authDomain: "thee-monolith.firebaseapp.com",
@@ -121,6 +157,42 @@ const UPLOAD_WORKER_URL =
     "https://thee-monolith-upload.hamdiyaalhassan66.workers.dev"
 const R2_MODELS_PUBLIC_URL =
     "https://pub-47f1e1d8fb014b909d74df6e1e78811d.r2.dev"
+
+    const REVERSE_CATEGORY_MAP: Record<string, string> = {
+    sound: "Music",
+    screen: "Film",
+    print: "Books",
+}
+
+const MY_ENTRIES_KEY = "directory-my-entries"
+
+function getMyEntryIds(): string[] {
+    if (typeof window === "undefined") return []
+    try {
+        const raw = localStorage.getItem(MY_ENTRIES_KEY)
+        return raw ? JSON.parse(raw) : []
+    } catch (e) {
+        return []
+    }
+}
+function addMyEntryId(id: string) {
+    if (typeof window === "undefined") return
+    try {
+        const ids = getMyEntryIds()
+        if (!ids.includes(id)) {
+            localStorage.setItem(MY_ENTRIES_KEY, JSON.stringify([...ids, id]))
+        }
+    } catch (e) {}
+}
+function removeMyEntryId(id: string) {
+    if (typeof window === "undefined") return
+    try {
+        localStorage.setItem(
+            MY_ENTRIES_KEY,
+            JSON.stringify(getMyEntryIds().filter((x) => x !== id))
+        )
+    } catch (e) {}
+}
 
 const CATEGORY_MAP: Record<string, "screen" | "sound" | "print"> = {
     Music: "sound",
@@ -3158,6 +3230,7 @@ function NewEntrySheet({
     theme,
     defaultCategory,
     entries,
+    editingEntry,
     onSubmitted,
     onDuplicate,
 }: {
@@ -3166,6 +3239,7 @@ function NewEntrySheet({
     theme: "light" | "dark"
     defaultCategory: string
     entries: Entry[]
+    editingEntry?: Entry | null
     onSubmitted?: (entry: Entry) => void
     onDuplicate?: (existing: Entry) => void
 }) {
@@ -3197,8 +3271,36 @@ function NewEntrySheet({
         releaseYear.trim().length > 0
 
     useEffect(() => {
-        if (visible) setCategory(defaultCategory)
-        else {
+        if (visible) {
+            if (editingEntry) {
+                setCategory(
+                    REVERSE_CATEGORY_MAP[editingEntry.category] ||
+                        defaultCategory
+                )
+                setType(toTitleCaseLabel(editingEntry.subcategory))
+                setGenres(
+                    editingEntry.genre ? editingEntry.genre.split(",") : []
+                )
+                setTitle(editingEntry.title)
+                setArtist(editingEntry.creator_name)
+                setReleaseYear(
+                    editingEntry.release_year
+                        ? String(editingEntry.release_year)
+                        : ""
+                )
+                setComment(editingEntry.comment || "")
+                setUsername(
+                    editingEntry.poster_username === "Anonymous"
+                        ? ""
+                        : editingEntry.poster_username
+                )
+                setCoverPreview(editingEntry.cover_image_url)
+                setUrl(editingEntry.external_link || "")
+                setPreviewUrl(editingEntry.preview_url || "")
+            } else {
+                setCategory(defaultCategory)
+            }
+        } else {
             setShowValidation(false)
             setType("")
             setGenres([])
@@ -3214,7 +3316,7 @@ function NewEntrySheet({
             setUrl("")
             setPreviewUrl("")
         }
-    }, [visible, defaultCategory])
+    }, [visible, defaultCategory, editingEntry])
 
     useEffect(() => {
         if (!genreOpen) setGenreSearch("")
@@ -3234,20 +3336,22 @@ function NewEntrySheet({
             setShowValidation(true)
             return
         }
-        const duplicate = isDuplicateEntry(
-            entries,
-            CATEGORY_MAP[category],
-            title,
-            artist
-        )
-        if (duplicate) {
-            onDuplicate?.(duplicate)
-            onClose()
-            return
+        if (!editingEntry) {
+            const duplicate = isDuplicateEntry(
+                entries,
+                CATEGORY_MAP[category],
+                title,
+                artist
+            )
+            if (duplicate) {
+                onDuplicate?.(duplicate)
+                onClose()
+                return
+            }
         }
         setSubmitting(true)
         try {
-            let coverUrl: string | null = null
+            let coverUrl: string | null = editingEntry?.cover_image_url ?? null
             if (coverFile) {
                 try {
                     const presignRes = await fetch(UPLOAD_WORKER_URL, {
@@ -3273,6 +3377,8 @@ function NewEntrySheet({
                 } catch (uploadError) {
                     console.error("Cover upload failed:", uploadError)
                 }
+            } else if (editingEntry && coverPreview === null) {
+                coverUrl = null
             }
 
             const entryData = {
@@ -3295,11 +3401,18 @@ function NewEntrySheet({
             }
 
             try {
-                const savedEntry = await addEntry(entryData)
+                const savedEntry = editingEntry
+                    ? await updateEntry(editingEntry.id, entryData)
+                    : await addEntry(entryData)
                 onSubmitted?.(savedEntry)
                 onClose()
             } catch (insertError) {
-                console.error("Entry insert failed:", insertError)
+                console.error(
+                    editingEntry
+                        ? "Entry update failed:"
+                        : "Entry insert failed:",
+                    insertError
+                )
             }
         } finally {
             setSubmitting(false)
@@ -3342,7 +3455,7 @@ function NewEntrySheet({
         visible={visible}
         onClose={onClose}
         theme={theme}
-        title="New Entry"
+        title={editingEntry ? "Edit Entry" : "New Entry"}
         titleIcon={<Icon.Plus color={theme === "light" ? WHITE : DARK} />}
     >
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -3881,7 +3994,13 @@ function NewEntrySheet({
                         <span
                             style={{ ...st.label, fontSize: 14, color: DARK }}
                         >
-                            {submitting ? "Submitting..." : "Submit"}
+                            {submitting
+                                ? editingEntry
+                                    ? "Saving..."
+                                    : "Submitting..."
+                                : editingEntry
+                                  ? "Save changes"
+                                  : "Submit"}
                         </span>
                     </div>
                 </div>
@@ -4541,6 +4660,95 @@ function InfoSheet({
     )
 }
 
+function DeleteConfirmSheet({
+    visible,
+    onClose,
+    onConfirm,
+    theme,
+    entryTitle,
+}: {
+    visible: boolean
+    onClose: () => void
+    onConfirm: () => void
+    theme: "light" | "dark"
+    entryTitle?: string
+}) {
+    const st = useFieldStyles(theme)
+    return (
+        <BottomSheet
+            visible={visible}
+            onClose={onClose}
+            theme={theme}
+            title="Delete entry"
+            maxHeightRatio={0.4}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 20,
+                    paddingBottom: 24,
+                }}
+            >
+                <p
+                    style={{
+                        margin: 0,
+                        ...st.label,
+                        fontSize: 14,
+                        lineHeight: "20px",
+                    }}
+                >
+                    {entryTitle
+                        ? `Are you sure you want to delete "${entryTitle}"? It can't be undone.`
+                        : "Are you sure you want to delete this entry? It can't be undone."}
+                </p>
+                <div style={{ display: "flex", flexDirection: "row" }}>
+                    <div
+                        onClick={() => {
+                            playClickSound()
+                            onClose()
+                        }}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                            padding: "12px 16px 24px 0",
+                            flex: 1,
+                            background: st.rowBg,
+                            cursor: "pointer",
+                        }}
+                    >
+                        <span style={{ ...st.label, fontSize: 14 }}>
+                            Cancel
+                        </span>
+                    </div>
+                    <div
+                        onClick={() => {
+                            playClickSound()
+                            onConfirm()
+                        }}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                            padding: "12px 16px 24px 0",
+                            flex: 1,
+                            background: PINK,
+                            cursor: "pointer",
+                        }}
+                    >
+                        <span
+                            style={{ ...st.label, fontSize: 14, color: DARK }}
+                        >
+                            Delete
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </BottomSheet>
+    )
+}
+
 // ─── Entry Detail Sheet — same Three.js viewers + preview audio as desktop, stacked layout ──
 function EntryDetailSheet({
     visible,
@@ -4549,6 +4757,8 @@ function EntryDetailSheet({
     entry,
     activeCategory,
     contrast,
+    onEdit,
+    onDelete,
 }: {
     visible: boolean
     onClose: () => void
@@ -4556,6 +4766,8 @@ function EntryDetailSheet({
     entry: Entry | null
     activeCategory: string
     contrast: number
+    onEdit?: (entry: Entry) => void
+    onDelete?: (entry: Entry) => void
 }) {
     const st = useFieldStyles(theme)
     const artBoxRef = useRef<HTMLDivElement>(null)
@@ -4662,6 +4874,7 @@ function EntryDetailSheet({
     const img = entryToImageItem(entry)
     const typeLabel = toTitleCaseLabel(entry.subcategory ?? "")
     const genres = (entry.genre ?? "").split(",").filter(Boolean)
+    const isMine = getMyEntryIds().includes(entry.id)
     const wideBoxWidth = Math.min(artW * 0.68, 230)
     const wideBoxHeight = wideBoxWidth / (589 / 374.09)
     const filmBoxWidth = Math.min(artW * 0.42, 150)
@@ -5026,11 +5239,73 @@ const mutedTextColor =
                         </div>
                     )}
                 </div>
-                {img.externalLink && (
-                    <ListenButton
-                        href={img.externalLink}
-                        label={getActionLabel(activeCategory)}
-                    />
+                {(img.externalLink || isMine) && (
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                            width: "100%",
+                        }}
+                    >
+                        {isMine && (
+                            <div
+                                onClick={() => {
+                                    playClickSound()
+                                    onEdit?.(entry)
+                                }}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "flex-start",
+                                    padding: "12px 24px 24px 0",
+                                    background: st.rowBg,
+                                    cursor: "pointer",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        ...chipTextStyle,
+                                        color: st.textColor,
+                                    }}
+                                >
+                                    Edit
+                                </span>
+                            </div>
+                        )}
+                        {isMine && (
+                            <div
+                                onClick={() => {
+                                    playClickSound()
+                                    onDelete?.(entry)
+                                }}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "flex-start",
+                                    padding: "12px 24px 24px 0",
+                                    background: st.rowBg,
+                                    cursor: "pointer",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        ...chipTextStyle,
+                                        color: st.textColor,
+                                    }}
+                                >
+                                    Delete
+                                </span>
+                            </div>
+                        )}
+                        {img.externalLink && (
+                            <ListenButton
+                                href={img.externalLink}
+                                label={getActionLabel(activeCategory)}
+                            />
+                        )}
+                    </div>
                 )}
             </div>
         </BottomSheet>
@@ -5506,6 +5781,13 @@ export default function InfiniteDragCanvasMobile(props: MobileProps) {
     const [duplicateToast, setDuplicateToast] = useState<ToastEntryData | null>(
         null
     )
+    const [updatedToast, setUpdatedToast] = useState<ToastEntryData | null>(
+        null
+    )
+    const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
+    const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<Entry | null>(
+        null
+    )
     const [filtersByCategory, setFiltersByCategory] = useState<
         Record<string, { type: string; genres: string[]; year: string }>
     >({})
@@ -5809,6 +6091,32 @@ export default function InfiniteDragCanvasMobile(props: MobileProps) {
         }
     }, [])
 
+    const handleEditEntry = useCallback((entry: Entry) => {
+        setViewingEntry(null)
+        setClickedKey(null)
+        setEditingEntry(entry)
+        setShowNewEntry(true)
+    }, [])
+
+    const handleDeleteEntry = useCallback((entry: Entry) => {
+        setDeleteConfirmEntry(entry)
+    }, [])
+
+    const handleConfirmDelete = useCallback(async () => {
+        const entry = deleteConfirmEntry
+        if (!entry) return
+        setDeleteConfirmEntry(null)
+        setViewingEntry(null)
+        setClickedKey(null)
+        setEntries((prev) => prev.filter((e) => e.id !== entry.id))
+        removeMyEntryId(entry.id)
+        try {
+            await deleteEntry(entry.id)
+        } catch (err) {
+            console.error("Delete failed:", err)
+        }
+    }, [deleteConfirmEntry])
+
     const cells = useMemo(() => {
         const list: { col: number; row: number; img: ImageItem }[] = []
         if (!images.length) return list
@@ -5947,6 +6255,7 @@ export default function InfiniteDragCanvasMobile(props: MobileProps) {
                         <div
                             onClick={() => {
                                 playClickSound()
+                                setEditingEntry(null)
                                 setShowNewEntry(true)
                             }}
                             style={{
@@ -6448,10 +6757,14 @@ export default function InfiniteDragCanvasMobile(props: MobileProps) {
 
             <NewEntrySheet
                 visible={showNewEntry}
-                onClose={() => setShowNewEntry(false)}
+                onClose={() => {
+                    setShowNewEntry(false)
+                    setEditingEntry(null)
+                }}
                 theme={theme}
                 defaultCategory={activeCategory}
                 entries={entries}
+                editingEntry={editingEntry}
                 onDuplicate={(existing) =>
                     setDuplicateToast({
                         title: existing.title,
@@ -6465,8 +6778,26 @@ export default function InfiniteDragCanvasMobile(props: MobileProps) {
                     })
                 }
                 onSubmitted={(entry) => {
+                    if (editingEntry) {
+                        setEntries((prev) =>
+                            prev.map((e) => (e.id === entry.id ? entry : e))
+                        )
+                        setEditingEntry(null)
+                        setUpdatedToast({
+                            title: entry.title,
+                            creatorName: entry.creator_name,
+                            coverImageUrl: entry.cover_image_url,
+                            type: toTitleCaseLabel(entry.subcategory),
+                            genre: entry.genre
+                                ? entry.genre.split(",")[0]
+                                : undefined,
+                            releaseYear: entry.release_year,
+                        })
+                        return
+                    }
                     if (entry.category === CATEGORY_MAP[activeCategory])
                         setEntries((prev) => [entry, ...prev])
+                    addMyEntryId(entry.id)
                     setToastEntry({
                         title: entry.title,
                         creatorName: entry.creator_name,
@@ -6510,6 +6841,15 @@ export default function InfiniteDragCanvasMobile(props: MobileProps) {
                 entry={viewingEntry}
                 activeCategory={activeCategory}
                 contrast={contrast}
+                onEdit={handleEditEntry}
+                onDelete={handleDeleteEntry}
+            />
+            <DeleteConfirmSheet
+                visible={!!deleteConfirmEntry}
+                onClose={() => setDeleteConfirmEntry(null)}
+                onConfirm={handleConfirmDelete}
+                theme={theme}
+                entryTitle={deleteConfirmEntry?.title}
             />
 
             <EntryAddedToast
@@ -6523,6 +6863,13 @@ export default function InfiniteDragCanvasMobile(props: MobileProps) {
                 onClose={() => setDuplicateToast(null)}
                 theme={theme}
                 label="Already In Directory"
+                topOffset={headerHeight + 16}
+            />
+            <EntryAddedToast
+                entry={updatedToast}
+                onClose={() => setUpdatedToast(null)}
+                theme={theme}
+                label="Entry Updated"
                 topOffset={headerHeight + 16}
             />
         </div>
