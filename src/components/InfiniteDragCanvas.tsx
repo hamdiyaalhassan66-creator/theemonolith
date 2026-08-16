@@ -7500,9 +7500,7 @@ function InfoModal({
                                     something worth sharing, feel free to add
                                     it. Leave a comment and include a link. Your
                                     recommendations are welcome here alongside
-                                    everyone else's; no account needed, no
-                                    gatekeeping. The best recommendations come
-                                    from people, not machines. This is that.
+                                    everyone else's; no account needed.
                                 </p>
                                 <span style={labelStyle}>
                                     Designed and built by{" "}
