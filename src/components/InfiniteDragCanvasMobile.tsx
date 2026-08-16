@@ -3033,6 +3033,8 @@ function BottomSheet({
     maxHeightRatio = 0.88,
     hideCloseButton = false,
     zIndexBase = 10001,
+    titleColor,
+    titleFontSize = 15,
     children,
 }: {
     visible: boolean
@@ -3043,6 +3045,8 @@ function BottomSheet({
     maxHeightRatio?: number
     hideCloseButton?: boolean
     zIndexBase?: number
+    titleColor?: string
+    titleFontSize?: number
     children: React.ReactNode
 }) {
     const dragControls = useDragControls()
@@ -3183,8 +3187,8 @@ function BottomSheet({
                                         style={{
                                             fontFamily: FONT,
                                             fontWeight: 600,
-                                            fontSize: 15,
-                                            color: textColor,
+                                            fontSize: titleFontSize,
+                                            color: titleColor ?? textColor,
                                         }}
                                     >
                                         {title}
@@ -4680,6 +4684,8 @@ function DeleteConfirmSheet({
     entryTitle?: string
 }) {
     const st = useFieldStyles(theme)
+    const mutedTitleColor =
+        theme === "light" ? "rgba(254,254,254,0.55)" : "rgba(28,28,28,0.55)"
     return (
         <BottomSheet
             visible={visible}
@@ -4689,6 +4695,8 @@ function DeleteConfirmSheet({
             maxHeightRatio={0.4}
             hideCloseButton
             zIndexBase={10011}
+            titleColor={mutedTitleColor}
+            titleFontSize={14}
         >
             <div
                 style={{
@@ -5837,14 +5845,6 @@ export default function InfiniteDragCanvasMobile(props: MobileProps) {
     useEffect(() => {
         setViewingEntry(null)
     }, [activeCategory])
-
-    useEffect(() => {
-    if (typeof window === "undefined") return
-    const script = document.createElement("script")
-    script.src = "https://cdn.jsdelivr.net/npm/eruda"
-    script.onload = () => (window as any).eruda?.init()
-    document.body.appendChild(script)
-}, [])
 
     useEffect(() => {
         setViewingEntry(null)
