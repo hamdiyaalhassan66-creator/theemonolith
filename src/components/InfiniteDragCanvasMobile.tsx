@@ -3005,17 +3005,31 @@ function useFieldStyles(theme: "light" | "dark") {
 }
 
 function useViewportHeight() {
-    const [vh, setVh] = useState(() =>
-        typeof window !== "undefined" ? window.innerHeight : 800
-    )
+    const getHeight = () => {
+        if (typeof window === "undefined") return 800
+        // visualViewport reports the actual visible viewport on mobile
+        // Safari/Chrome, unaffected by the address bar/toolbar showing or
+        // hiding — window.innerHeight flips between those two states and
+        // caused the detail sheet and entry sheet to land on different
+        // heights depending on exactly when each one measured.
+        return window.visualViewport?.height ?? window.innerHeight
+    }
+    const [vh, setVh] = useState(getHeight)
     useEffect(() => {
-        const update = () => {
-            setVh(window.innerHeight)
-        }
+        const update = () => setVh(getHeight())
         update()
+        const vv = window.visualViewport
+        if (vv) {
+            vv.addEventListener("resize", update)
+            vv.addEventListener("scroll", update)
+        }
         window.addEventListener("resize", update)
         window.addEventListener("orientationchange", update)
         return () => {
+            if (vv) {
+                vv.removeEventListener("resize", update)
+                vv.removeEventListener("scroll", update)
+            }
             window.removeEventListener("resize", update)
             window.removeEventListener("orientationchange", update)
         }
