@@ -3031,6 +3031,8 @@ function BottomSheet({
     title,
     titleIcon,
     maxHeightRatio = 0.88,
+    hideCloseButton = false,
+    zIndexBase = 10001,
     children,
 }: {
     visible: boolean
@@ -3039,6 +3041,8 @@ function BottomSheet({
     title: string
     titleIcon?: React.ReactNode
     maxHeightRatio?: number
+    hideCloseButton?: boolean
+    zIndexBase?: number
     children: React.ReactNode
 }) {
     const dragControls = useDragControls()
@@ -3096,7 +3100,7 @@ function BottomSheet({
                         style={{
                             position: "fixed",
                             inset: 0,
-                            zIndex: 10001,
+                            zIndex: zIndexBase,
                             background:
                                 theme === "light"
                                     ? "rgba(254,254,254,0.5)"
@@ -3124,7 +3128,7 @@ function BottomSheet({
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            zIndex: 10002,
+                            zIndex: zIndexBase + 1,
                             width: "100%",
                             height: panelHeight,
                             maxHeight,
@@ -3186,20 +3190,22 @@ function BottomSheet({
                                         {title}
                                     </span>
                                 </div>
-                                <div
-                                    onClick={handleClose}
-                                    style={{
-                                        width: 32,
-                                        height: 32,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        background: PINK,
-                                        cursor: "pointer",
-                                    }}
-                                >
-                                    <Icon.Close color={DARK} />
-                                </div>
+                                {!hideCloseButton && (
+                                    <div
+                                        onClick={handleClose}
+                                        style={{
+                                            width: 32,
+                                            height: 32,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            background: PINK,
+                                            cursor: "pointer",
+                                        }}
+                                    >
+                                        <Icon.Close color={DARK} />
+                                    </div>
+                                )}
                             </div>
                             <div
                                 style={{
@@ -4681,13 +4687,14 @@ function DeleteConfirmSheet({
             theme={theme}
             title="Delete entry"
             maxHeightRatio={0.4}
+            hideCloseButton
+            zIndexBase={10011}
         >
             <div
                 style={{
                     display: "flex",
                     flexDirection: "column",
                     gap: 20,
-                    paddingBottom: 24,
                 }}
             >
                 <p
@@ -5259,7 +5266,7 @@ const mutedTextColor =
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "flex-start",
-                                    padding: "12px 24px 24px 0",
+                                    padding: "12px 40px 24px 0",
                                     background: st.rowBg,
                                     cursor: "pointer",
                                 }}
@@ -5284,7 +5291,7 @@ const mutedTextColor =
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "flex-start",
-                                    padding: "12px 24px 24px 0",
+                                    padding: "12px 40px 24px 0",
                                     background: st.rowBg,
                                     cursor: "pointer",
                                 }}
