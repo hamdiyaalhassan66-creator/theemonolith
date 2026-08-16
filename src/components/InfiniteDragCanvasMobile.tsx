@@ -5274,7 +5274,7 @@ const mutedTextColor =
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "flex-start",
-                                    padding: "12px 40px 24px 0",
+                                    padding: "12px 40px 16px 0",
                                     background: st.rowBg,
                                     cursor: "pointer",
                                 }}
@@ -5299,7 +5299,7 @@ const mutedTextColor =
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "flex-start",
-                                    padding: "12px 40px 24px 0",
+                                    padding: "12px 40px 16px 0",
                                     background: st.rowBg,
                                     cursor: "pointer",
                                 }}
